@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/sangoh/public_html/
+    - export DEPLOYPATH=/home1/essysamy/public_html/
     - /bin/cp -R dist/* $DEPLOYPATH
