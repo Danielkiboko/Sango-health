@@ -199,12 +199,12 @@ export default function SangoHealthApp() {
         </div>
       )}
 
-      {/* Header - Clean, Uncluttered, with 'Se connecter' and 'Portail Admin' buttons */}
+      {/* Header - Clean, Uncluttered, with single unified 'Se connecter' button */}
       <Header
         currentView={currentView}
         setCurrentView={setCurrentView}
         currentUser={currentUser}
-        onOpenAuthModal={(role) => { setAuthModalRole(role || 'patient'); setIsAuthModalOpen(true); }}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -282,9 +282,9 @@ export default function SangoHealthApp() {
       )}
 
       {/* Auth Modal with Patient, Doctor, and Admin SaaS options */}
+      {/* Auth Modal with automatic role detection */}
       {isAuthModalOpen && (
         <AuthModal 
-          initialRole={authModalRole}
           onClose={() => setIsAuthModalOpen(false)}
           onLogin={handleLogin}
         />

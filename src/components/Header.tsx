@@ -1,12 +1,12 @@
 import React from 'react';
 import { User, LogOut, ShieldCheck } from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
+import { UserProfile } from '../types';
 
 interface HeaderProps {
   currentView: string;
   setCurrentView: (view: string) => void;
   currentUser: UserProfile | null;
-  onOpenAuthModal: (role?: UserRole) => void;
+  onOpenAuthModal: () => void;
   onLogout: () => void;
 }
 
@@ -87,26 +87,15 @@ export default function Header({
           )}
         </nav>
 
-        {/* User Account & Login Portal Buttons */}
-        <div className="flex items-center space-x-2.5 sm:space-x-3">
-          {/* Direct Super Admin access button */}
-          <button 
-            onClick={() => onOpenAuthModal('admin')}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-blue-50 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-bold transition shadow-sm"
-            title="Connexion Super Administrateur SangO"
-          >
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <span className="hidden sm:inline">Portail Admin</span>
-            <span className="sm:hidden">Admin</span>
-          </button>
-
+        {/* Unique User Login Button / Account Pill */}
+        <div className="flex items-center space-x-3">
           {currentUser ? (
-            <div className="flex items-center space-x-2.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+            <div className="flex items-center space-x-2.5 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
               <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-inner">
                 {currentUser.name.charAt(0)}
               </div>
               <div className="hidden sm:block text-left">
-                <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">{currentUser.name}</div>
+                <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[130px]">{currentUser.name}</div>
                 <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">
                   {currentUser.role === 'admin' ? 'Super Admin' : currentUser.role === 'doctor' ? 'Médecin' : currentUser.role === 'pharmacy' ? 'Pharmacie' : 'Patient'}
                 </div>
@@ -121,8 +110,8 @@ export default function Header({
             </div>
           ) : (
             <button 
-              onClick={() => onOpenAuthModal('patient')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-1.5"
+              onClick={onOpenAuthModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-sm flex items-center space-x-2"
             >
               <User className="w-4 h-4" />
               <span>Se connecter</span>
