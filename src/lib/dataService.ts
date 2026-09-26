@@ -193,29 +193,49 @@ export const dataService = {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      // Tenter d'abord la réinitialisation de mot de passe officielle Supabase
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : 'https://sango-health.com'
+      });
+
+      if (!resetErr) {
+        return { 
+          success: true, 
+          message: `Un lien sécurisé de réinitialisation a été envoyé à ${email}. Pensez à vérifier vos spams !` 
+        };
+      }
+
+      if (resetErr.message.includes('rate limit') || (resetErr as any).status === 429) {
+        return { 
+          success: true, 
+          message: `Notice : Le quota d'emails de test gratuits de Supabase est temporairement atteint pour cette heure. Vous pouvez vous connecter directement ou générer le lien depuis le tableau de bord Supabase.` 
+        };
+      }
+
+      // Si le compte n'a pas encore de mot de passe, tenter OTP
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : 'https://sango-health.com'
         }
       });
 
-      if (error) {
-        if (error.message.includes('rate limit') || (error as any).status === 429) {
+      if (otpErr) {
+        if (otpErr.message.includes('rate limit') || (otpErr as any).status === 429) {
           return { 
             success: true, 
-            message: `Email d'invitation déjà transmis récemment à ${email}. Merci de vérifier vos spams ou de patienter 60s.` 
+            message: `Le serveur d'email Supabase applique un délai de sécurité (quota horaire). Vous pouvez vous connecter directement sans attendre.` 
           };
         }
-        return { success: false, message: error.message };
+        return { success: false, message: otpErr.message };
       }
 
       return { 
         success: true, 
-        message: `Email d'invitation officiel et lien de création de mot de passe transmis avec succès à ${email} !` 
+        message: `Lien de connexion et réinitialisation transmis à ${email} !` 
       };
     } catch (err: any) {
-      return { success: false, message: err.message || "Erreur lors de l'envoi de l'invitation." };
+      return { success: false, message: err.message || "Erreur lors de l'envoi de la réinitialisation." };
     }
   }
 };
