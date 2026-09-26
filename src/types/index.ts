@@ -94,3 +94,15 @@ export interface SaaSSubscriptionInvoice {
   status: 'Payé' | 'En cours' | 'Échoué';
   transactionRef: string;
 }
+
+export interface SuperAdminUser {
+  id: string | number;
+  name: string;
+  email: string;
+  role: 'SUPER_ADMIN' | 'ADMIN';
+  status: 'Actif' | 'Invitation envoyée' | 'En attente';
+  phone?: string;
+  avatar?: string;
+  lastLogin?: string;
+}
+

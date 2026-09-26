@@ -86,12 +86,24 @@ CREATE TABLE IF NOT EXISTS saas_invoices (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. Politiques de Sécurité RLS (Row Level Security) permissives pour démarrer
+-- 6. Table des Super Administrateurs & Équipe de Direction SangO Health
+CREATE TABLE IF NOT EXISTS super_admins (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    role VARCHAR(50) DEFAULT 'SUPER_ADMIN',
+    status VARCHAR(50) DEFAULT 'Actif',
+    phone VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. Politiques de Sécurité RLS (Row Level Security) permissives pour démarrer
 ALTER TABLE doctors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prescriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saas_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saas_invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE super_admins ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public read doctors" ON doctors FOR SELECT USING (true);
 CREATE POLICY "Public insert doctors" ON doctors FOR INSERT WITH CHECK (true);
@@ -101,9 +113,21 @@ CREATE POLICY "Public all appointments" ON appointments FOR ALL USING (true);
 CREATE POLICY "Public all prescriptions" ON prescriptions FOR ALL USING (true);
 CREATE POLICY "Public all saas_accounts" ON saas_accounts FOR ALL USING (true);
 CREATE POLICY "Public all saas_invoices" ON saas_invoices FOR ALL USING (true);
+CREATE POLICY "Public all super_admins" ON super_admins FOR ALL USING (true);
 
--- Données initiales de test
+-- Données initiales : Médecins
 INSERT INTO doctors (name, specialty, address, fee, image, bio)
 VALUES 
 ('Dr. Marie Laurent', 'Généraliste', '12 Avenue des Martyrs, Gombe, Kinshasa', '30 000 CDF', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300', 'Spécialiste en médecine générale et suivi familial.')
 ON CONFLICT DO NOTHING;
+
+-- Données initiales : Les 2 Super Administrateurs SangO Health
+INSERT INTO super_admins (name, email, role, status)
+VALUES 
+('KIBOKO Daniel', 'danielkiboko218@gmail.com', 'SUPER_ADMIN', 'Actif'),
+('KIBONGE François', 'kibongef15@gmail.com', 'SUPER_ADMIN', 'Actif')
+ON CONFLICT (email) DO UPDATE SET 
+    name = EXCLUDED.name,
+    role = EXCLUDED.role,
+    status = EXCLUDED.status;
+

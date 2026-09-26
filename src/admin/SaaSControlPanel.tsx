@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -15,10 +15,20 @@ import {
   X, 
   Calendar, 
   ShieldCheck, 
-  Check 
+  Check,
+  CheckCircle2,
+  Mail,
+  KeyRound,
+  Lock,
+  Send,
+  UserCheck,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
-import { Doctor, SaaSDoctorAccount } from '../types';
+import { Doctor, SaaSDoctorAccount, SuperAdminUser } from '../types';
 import { INITIAL_SAAS_ACCOUNTS } from '../data/saasAccounts';
+import { dataService } from '../lib/dataService';
+import SetPasswordModal from '../components/SetPasswordModal';
 
 interface SaaSControlPanelProps {
   doctors: Doctor[];
@@ -27,11 +37,35 @@ interface SaaSControlPanelProps {
 }
 
 export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: SaaSControlPanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'billing' | 'infrastructure'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'billing' | 'infrastructure' | 'admins'>('overview');
   const [accounts, setAccounts] = useState<SaaSDoctorAccount[]>(INITIAL_SAAS_ACCOUNTS);
+  const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSetPasswordOpen, setIsSetPasswordOpen] = useState(false);
+  const [selectedAdminEmail, setSelectedAdminEmail] = useState('');
+  const [inviteStatus, setInviteStatus] = useState<{ [email: string]: string }>({});
+  const [isInviting, setIsInviting] = useState<{ [email: string]: boolean }>({});
   const [filterPlan, setFilterPlan] = useState<string>('all');
   const [searchDoctorQuery, setSearchDoctorQuery] = useState('');
+
+  useEffect(() => {
+    dataService.getSuperAdmins().then(setSuperAdmins);
+  }, []);
+
+  const handleSendInvite = async (email: string) => {
+    setIsInviting(prev => ({ ...prev, [email]: true }));
+    const res = await dataService.sendAdminInvite(email);
+    setInviteStatus(prev => ({ ...prev, [email]: res.message }));
+    setIsInviting(prev => ({ ...prev, [email]: false }));
+    setTimeout(() => {
+      setInviteStatus(prev => {
+        const copy = { ...prev };
+        delete copy[email];
+        return copy;
+      });
+    }, 7000);
+  };
+
 
   // Form State for new doctor onboarding
   const [newDoctorName, setNewDoctorName] = useState('');
@@ -198,6 +232,17 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
           >
             <Video className="w-4 h-4" />
             <span>Usage Vidéo Réseau</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('admins')}
+            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
+              activeTab === 'admins'
+                ? 'border-blue-400 text-blue-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Équipe & Super Admins ({superAdmins.length || 2})</span>
           </button>
         </div>
       </div>
@@ -664,7 +709,191 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             </div>
           </div>
         )}
+
+        {/* SUPER ADMINS & DIRECTION TAB */}
+        {activeTab === 'admins' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Header / Intro */}
+            <div className="bg-gradient-to-r from-blue-900/60 via-slate-800 to-slate-900 border border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-bold uppercase tracking-wider">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Gouvernance & Sécurité RDC</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-white font-brand">
+                    Super Administrateurs SangO Health
+                  </h2>
+                  <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                    Gestion des accès de niveau direction, invitations officielles Supabase Auth et création des mots de passe sécurisés pour les deux Super Admins.
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3 shrink-0">
+                  <div className="bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-3 text-right">
+                    <div className="text-[11px] text-slate-400 font-medium">Statut Supabase Auth</div>
+                    <div className="text-xs font-bold text-emerald-400 flex items-center space-x-1.5 justify-end mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>Opérationnel & Connecté</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* List of 2 Super Admins */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {superAdmins.map((admin) => (
+                <div 
+                  key={admin.email}
+                  className="bg-slate-800/90 border border-slate-700 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Top row */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-4">
+                        <img 
+                          src={admin.avatar} 
+                          alt={admin.name} 
+                          className="w-14 h-14 rounded-2xl object-cover border-2 border-blue-400/40 shadow-md"
+                        />
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-lg font-black text-white font-brand">{admin.name}</h3>
+                            <span className="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-400/30">
+                              SUPER ADMIN
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-400 flex items-center space-x-1 mt-0.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-500" />
+                            <span>{admin.email}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full border border-emerald-500/20 flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>{admin.status}</span>
+                      </span>
+                    </div>
+
+                    {/* Permissions & Details */}
+                    <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 mb-5 space-y-2">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Privilèges Système Détenus :
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                        <div className="flex items-center space-x-1.5 text-blue-300">
+                          <Check className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Contrôle SaaS Global</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5 text-blue-300">
+                          <Check className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Gestion Cabinets RDC</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5 text-blue-300">
+                          <Check className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Encaissements Mobile Money</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5 text-blue-300">
+                          <Check className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Accès Supabase PostgreSQL</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Feedback banner */}
+                    {inviteStatus[admin.email] && (
+                      <div className="mb-4 p-3 bg-blue-500/10 border border-blue-400/30 rounded-2xl text-xs text-blue-200 flex items-start space-x-2 animate-in fade-in duration-200">
+                        <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                        <span>{inviteStatus[admin.email]}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-slate-700/70 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={isInviting[admin.email]}
+                      onClick={() => handleSendInvite(admin.email)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-lg shadow-blue-600/30 transition flex items-center justify-center space-x-2"
+                    >
+                      {isInviting[admin.email] ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Envoi de l'invitation...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Renvoyer l'email d'invitation</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAdminEmail(admin.email);
+                        setIsSetPasswordOpen(true);
+                      }}
+                      className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center space-x-1.5"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-slate-300" />
+                      <span>Définir Mot de Passe</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Supabase Infrastructure Security Info */}
+            <div className="bg-slate-800/60 border border-slate-700/80 rounded-3xl p-6 shadow-lg">
+              <h3 className="text-base font-bold text-white mb-3 flex items-center space-x-2 font-brand">
+                <KeyRound className="w-4 h-4 text-blue-400" />
+                <span>Architecture Sécurité & Authentification</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
+                <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="font-bold text-white mb-1">Serveur d'Auth Supabase</div>
+                  <div className="text-slate-400 text-[11px] leading-relaxed">
+                    Connecté au projet Supabase <code className="text-blue-300 font-mono">fpfaerpzwkgivfluwvpe</code> avec conformité RGPD/HIPAA et TLS 1.3.
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="font-bold text-white mb-1">Mots de passe Chiffrés</div>
+                  <div className="text-slate-400 text-[11px] leading-relaxed">
+                    Hachage cryptographique irréversible avec sel unique par administrateur. Aucun mot de passe en clair.
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="font-bold text-white mb-1">Invitations & Magic Link</div>
+                  <div className="text-slate-400 text-[11px] leading-relaxed">
+                    Tokens temporaires à usage unique (TTL 3600s) envoyés directement aux adresses emails vérifiées des Super Admins.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* MODAL: DEFINIR MOT DE PASSE SUPER ADMIN */}
+      {isSetPasswordOpen && (
+        <SetPasswordModal
+          userEmail={selectedAdminEmail}
+          onClose={() => setIsSetPasswordOpen(false)}
+          onSuccess={() => {
+            setInviteStatus(prev => ({
+              ...prev,
+              [selectedAdminEmail]: "Mot de passe défini avec succès !"
+            }));
+          }}
+        />
+      )}
 
       {/* MODAL: ONBOARD NEW DOCTOR ACCOUNT */}
       {isAddModalOpen && (

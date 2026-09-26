@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
+import SetPasswordModal from './components/SetPasswordModal';
 
 // Domain Folders
 import SaaSControlPanel from './admin/SaaSControlPanel';
@@ -17,7 +18,7 @@ import { INITIAL_DOCTORS } from './data/doctors';
 import { INITIAL_APPOINTMENTS } from './data/appointments';
 import { Doctor, Appointment, UserProfile, UserRole, DoctorScheduleDay } from './types';
 import { dataService } from './lib/dataService';
-import { isSupabaseConfigured } from './lib/supabase';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 export default function SangoHealthApp() {
   const [currentView, setCurrentView] = useState<string>('home'); // 'home', 'search', 'dashboard', 'doctor_portal', 'saas_admin'
@@ -27,6 +28,7 @@ export default function SangoHealthApp() {
   
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isSetPasswordModalOpen, setIsSetPasswordModalOpen] = useState<boolean>(false);
   const [authModalRole, setAuthModalRole] = useState<UserRole>('patient');
 
   // Currently logged in user (starts with Christian Kabeya as default patient)
@@ -44,6 +46,49 @@ export default function SangoHealthApp() {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 4000);
   };
+
+  // Synchronisation et écoute de la session Supabase Auth (Invitations & Liens Magiques)
+  useEffect(() => {
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.email) {
+          const email = session.user.email.toLowerCase();
+          if (email === 'danielkiboko218@gmail.com' || email === 'kibongef15@gmail.com') {
+            setCurrentUser({
+              name: email.includes('daniel') ? 'KIBOKO Daniel' : 'KIBONGE François',
+              role: 'admin',
+              email
+            });
+            setCurrentView('saas_admin');
+            showNotification(`Session Super Admin validée : ${email}`, 'success');
+          }
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user?.email) {
+          const email = session.user.email.toLowerCase();
+          if (email === 'danielkiboko218@gmail.com' || email === 'kibongef15@gmail.com') {
+            setCurrentUser({
+              name: email.includes('daniel') ? 'KIBOKO Daniel' : 'KIBONGE François',
+              role: 'admin',
+              email
+            });
+            setCurrentView('saas_admin');
+          }
+          if (event === 'PASSWORD_RECOVERY') {
+            setIsSetPasswordModalOpen(true);
+            showNotification('Veuillez définir votre nouveau mot de passe administrateur.', 'info');
+          }
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, []);
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,6 +291,17 @@ export default function SangoHealthApp() {
           initialRole={authModalRole}
           onClose={() => setIsAuthModalOpen(false)}
           onLogin={handleLogin}
+        />
+      )}
+
+      {/* Set Password Modal for Admin / Recovery */}
+      {isSetPasswordModalOpen && (
+        <SetPasswordModal
+          userEmail={currentUser?.email}
+          onClose={() => setIsSetPasswordModalOpen(false)}
+          onSuccess={() => {
+            showNotification('Votre mot de passe a été défini avec succès !', 'success');
+          }}
         />
       )}
 

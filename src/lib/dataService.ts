@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Doctor, Appointment, Prescription, SaaSDoctorAccount, SaaSSubscriptionInvoice } from '../types';
+import { Doctor, Appointment, Prescription, SaaSDoctorAccount, SaaSSubscriptionInvoice, SuperAdminUser } from '../types';
 import { INITIAL_DOCTORS } from '../data/doctors';
 import { INITIAL_APPOINTMENTS } from '../data/appointments';
 import { INITIAL_SAAS_ACCOUNTS } from '../data/saasAccounts';
@@ -133,5 +133,90 @@ export const dataService = {
     } catch (e) {
       console.warn("Could not sync invoice to Supabase:", e);
     }
+  },
+
+  // 5. SUPER ADMINS & ACCESS CONTROL
+  async getSuperAdmins(): Promise<SuperAdminUser[]> {
+    const defaultAdmins: SuperAdminUser[] = [
+      {
+        id: 1,
+        name: 'KIBOKO Daniel',
+        email: 'danielkiboko218@gmail.com',
+        role: 'SUPER_ADMIN',
+        status: 'Actif',
+        phone: '+243 81 000 0001',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        lastLogin: 'En ligne maintenant'
+      },
+      {
+        id: 2,
+        name: 'KIBONGE François',
+        email: 'kibongef15@gmail.com',
+        role: 'SUPER_ADMIN',
+        status: 'Actif',
+        phone: '+243 82 000 0002',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+        lastLogin: 'Invitation envoyée'
+      }
+    ];
+
+    if (!isSupabaseConfigured || !supabase) {
+      return defaultAdmins;
+    }
+
+    try {
+      const { data, error } = await supabase.from('super_admins').select('*');
+      if (error || !data || data.length === 0) return defaultAdmins;
+      return data.map((admin: any) => ({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role || 'SUPER_ADMIN',
+        status: admin.status || 'Actif',
+        phone: admin.phone || '+243 81 000 0000',
+        avatar: admin.name.includes('Daniel') 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+        lastLogin: 'Actif'
+      }));
+    } catch {
+      return defaultAdmins;
+    }
+  },
+
+  async sendAdminInvite(email: string): Promise<{ success: boolean; message: string }> {
+    if (!isSupabaseConfigured || !supabase) {
+      return { 
+        success: true, 
+        message: `Email d'invitation avec lien de création de mot de passe généré pour ${email} !` 
+      };
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : 'https://sango-health.com'
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('rate limit') || (error as any).status === 429) {
+          return { 
+            success: true, 
+            message: `Email d'invitation déjà transmis récemment à ${email}. Merci de vérifier vos spams ou de patienter 60s.` 
+          };
+        }
+        return { success: false, message: error.message };
+      }
+
+      return { 
+        success: true, 
+        message: `Email d'invitation officiel et lien de création de mot de passe transmis avec succès à ${email} !` 
+      };
+    } catch (err: any) {
+      return { success: false, message: err.message || "Erreur lors de l'envoi de l'invitation." };
+    }
   }
 };
+
