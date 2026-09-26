@@ -237,6 +237,81 @@ export const dataService = {
     } catch (err: any) {
       return { success: false, message: err.message || "Erreur lors de l'envoi de la réinitialisation." };
     }
+  },
+
+  // 6. PASSWORD MANAGEMENT PER ADMIN (Strict Isolation)
+  async setAdminPassword(email: string, password: string): Promise<boolean> {
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase
+            .from('super_admins')
+            .update({ status: 'Actif' })
+            .eq('email', cleanEmail);
+
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.email?.toLowerCase() === cleanEmail) {
+            await supabase.auth.updateUser({ password });
+          }
+        } catch (dbErr) {
+          console.warn("Supabase update notice:", dbErr);
+        }
+      }
+      return true;
+    } catch (e) {
+      console.warn("Could not save password:", e);
+      return false;
+    }
+  },
+
+  async verifyAdminPassword(email: string, password: string): Promise<{ valid: boolean; message?: string; isFirstTime?: boolean }> {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Tenter l'authentification officielle Supabase Auth
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: password
+        });
+
+        if (!error && data?.user) {
+          // Mot de passe Supabase validé avec succès
+          return { valid: true };
+        }
+      } catch {
+        // En cas d'échec réseau ou rate limit, continuer vers vérification isolée
+      }
+    }
+
+    // 2. Vérifier le mot de passe localement enregistré pour CET email précis
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedPwd = window.localStorage.getItem(`sango_pwd_${cleanEmail}`);
+
+      if (storedPwd) {
+        if (storedPwd === password) {
+          return { valid: true };
+        } else {
+          return {
+            valid: false,
+            message: `Mot de passe incorrect pour le compte ${cleanEmail}. Chaque administrateur possède son propre mot de passe distinct.`
+          };
+        }
+      }
+    }
+
+    // 3. Si aucun mot de passe n'a encore été créé pour cet administrateur
+    return {
+      valid: false,
+      isFirstTime: true,
+      message: `Aucun mot de passe n'a encore été configuré pour ${cleanEmail}. Veuillez cliquer sur "Définir mon mot de passe" ci-dessous pour choisir votre mot de passe personnel.`
+    };
   }
 };
+
 

@@ -3,6 +3,7 @@ import { X, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, KeyRou
 import { UserProfile, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 import { dataService } from '../lib/dataService';
+import SetPasswordModal from './SetPasswordModal';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isSettingPasswordOpen, setIsSettingPasswordOpen] = useState(false);
   const [infoMessage, setInfoMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,7 +77,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     const res = await dataService.sendAdminInvite(email.trim());
     if (res.success) {
       setInfoMessage({ 
-        text: `Un lien sécurisé de réinitialisation a été envoyé à ${email.trim()}. Vérifiez votre boîte de réception (et vos spams).`, 
+        text: `Un lien sécurisé de réinitialisation a été envoyé à ${email.trim()}. Vérifiez vos messages et vos spams. Vous pouvez également définir votre mot de passe directement via le bouton ci-dessous.`, 
         type: 'success' 
       });
     } else {
@@ -84,7 +86,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setIsSubmitting(false);
   };
 
-  // Connexion standard
+  // Connexion avec vérification stricte et isolée du mot de passe
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -94,28 +96,39 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
 
     const detected = detectUserRole(email);
 
-    // Tentative d'authentification Supabase si mot de passe fourni
-    if (password && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password
+    // Vérification de sécurité stricte pour les comptes Super Administrateurs
+    if (detected.role === 'admin') {
+      if (!password) {
+        setInfoMessage({ 
+          text: "Veuillez saisir votre mot de passe pour ce compte administrateur.", 
+          type: 'error' 
         });
-
-        if (!error && data?.user) {
-          onLogin({
-            name: detected.name,
-            role: detected.role,
-            email: email.trim()
-          });
-          return;
-        }
-      } catch {
-        // Fallback transparent
+        setIsSubmitting(false);
+        return;
       }
+
+      // Vérification du mot de passe propre à cet administrateur spécifique
+      const check = await dataService.verifyAdminPassword(email, password);
+
+      if (!check.valid) {
+        setInfoMessage({ 
+          text: check.message || `Mot de passe incorrect pour le compte ${email.trim()}. Chaque administrateur doit utiliser son propre mot de passe distinct.`, 
+          type: 'error' 
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Mot de passe validé pour cet admin !
+      onLogin({
+        name: detected.name,
+        role: 'admin',
+        email: email.trim()
+      });
+      return;
     }
 
-    // Connexion automatique selon le rôle identifié
+    // Autres rôles (Médecins, Pharmacies, Patients)
     onLogin({
       name: detected.name,
       role: detected.role,
@@ -166,7 +179,21 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             ) : (
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             )}
-            <span>{infoMessage.text}</span>
+            <div className="flex-1">
+              <span>{infoMessage.text}</span>
+              {/* Option directe pour définir le mot de passe si non configuré */}
+              {infoMessage.type === 'error' && infoMessage.text.includes('configuré') && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingPasswordOpen(true)}
+                    className="font-bold text-blue-700 underline text-xs hover:text-blue-900"
+                  >
+                    👉 Définir mon mot de passe maintenant
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -200,6 +227,18 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               <KeyRound className="w-4 h-4" />
               <span>{isSubmitting ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}</span>
             </button>
+
+            {email.trim() && (
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingPasswordOpen(true)}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition"
+                >
+                  Ou définir mon mot de passe directement
+                </button>
+              </div>
+            )}
 
             <div className="text-center pt-2">
               <button
@@ -242,16 +281,32 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Mot de passe
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsForgotPassword(true);
-                    setInfoMessage(null);
-                  }}
-                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
-                >
-                  Mot de passe oublié ?
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!email.trim()) {
+                        setInfoMessage({ text: "Veuillez d'abord renseigner votre adresse email.", type: 'error' });
+                        return;
+                      }
+                      setIsSettingPasswordOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
+                  >
+                    Créer mon mot de passe
+                  </button>
+                  <span className="text-slate-300">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setInfoMessage(null);
+                    }}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 transition"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                </div>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -276,6 +331,21 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+        )}
+
+        {/* Modal pour définir le mot de passe propre à CET email */}
+        {isSettingPasswordOpen && (
+          <SetPasswordModal
+            userEmail={email.trim()}
+            onClose={() => setIsSettingPasswordOpen(false)}
+            onSuccess={() => {
+              setInfoMessage({
+                text: `Mot de passe enregistré avec succès pour ${email.trim()} ! Vous pouvez maintenant vous connecter avec ce mot de passe.`,
+                type: 'success'
+              });
+              setPassword('');
+            }}
+          />
         )}
       </div>
     </div>

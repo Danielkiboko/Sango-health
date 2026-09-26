@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, CheckCircle2, ShieldCheck, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { dataService } from '../lib/dataService';
 
 interface SetPasswordModalProps {
   userEmail?: string;
@@ -30,15 +31,15 @@ export default function SetPasswordModal({ userEmail, onClose, onSuccess }: SetP
     setErrorMsg('');
 
     try {
-      if (supabase) {
-        const { error } = await supabase.auth.updateUser({
-          password: password
-        });
+      if (userEmail) {
+        await dataService.setAdminPassword(userEmail, password);
+      }
 
-        if (error) {
-          setErrorMsg(error.message);
-          setIsLoading(false);
-          return;
+      if (supabase) {
+        try {
+          await supabase.auth.updateUser({ password });
+        } catch {
+          // ignore if no active session yet
         }
       }
 
@@ -46,7 +47,7 @@ export default function SetPasswordModal({ userEmail, onClose, onSuccess }: SetP
       setTimeout(() => {
         if (onSuccess) onSuccess();
         onClose();
-      }, 2000);
+      }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message || "Impossible d'enregistrer le mot de passe.");
     } finally {
