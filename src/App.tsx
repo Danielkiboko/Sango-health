@@ -55,8 +55,8 @@ export default function SangoHealthApp() {
               role: 'admin',
               email
             });
-            setCurrentView('saas_admin');
-            showNotification(`Session Super Admin validée : ${email}`, 'success');
+            // Important : Nous gardons la vue par défaut sur 'home' (Accueil)
+            // L'administrateur peut accéder au panel à tout moment via le bouton dédié dans le menu.
           }
         }
       });
@@ -70,7 +70,6 @@ export default function SangoHealthApp() {
               role: 'admin',
               email
             });
-            setCurrentView('saas_admin');
           }
           if (event === 'PASSWORD_RECOVERY') {
             setIsSetPasswordModalOpen(true);
@@ -182,7 +181,14 @@ export default function SangoHealthApp() {
     showNotification(`Bienvenue, ${user.name} !`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.warn('Erreur déconnexion supabase:', err);
+    }
     setCurrentUser(null);
     setCurrentView('home');
     showNotification("Déconnecté avec succès", "info");
@@ -262,13 +268,31 @@ export default function SangoHealthApp() {
           />
         )}
 
-        {/* Admin Domain (SaaS Control Panel) */}
+        {/* Admin Domain (SaaS Control Panel) - Protégé strictement */}
         {currentView === 'saas_admin' && (
-          <SaaSControlPanel 
-            doctors={doctors}
-            onAddDoctor={handleAddDoctorFromSaaS}
-            onUpdateDoctorStatus={handleUpdateDoctorStatus}
-          />
+          currentUser?.role === 'admin' ? (
+            <SaaSControlPanel 
+              doctors={doctors}
+              onAddDoctor={handleAddDoctorFromSaaS}
+              onUpdateDoctorStatus={handleUpdateDoctorStatus}
+            />
+          ) : (
+            <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-slate-200 text-center shadow-xl">
+              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl shadow-inner">
+                🔒
+              </div>
+              <h2 className="text-xl font-black text-slate-900 mb-2">Accès Administrateur Restreint</h2>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                Cet espace est strictement réservé aux Super Administrateurs autorisés (KIBOKO Daniel & KIBONGE François).
+              </p>
+              <button 
+                onClick={() => setCurrentView('home')} 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md shadow-blue-600/20 transition"
+              >
+                Retourner à l'Accueil
+              </button>
+            </div>
+          )
         )}
       </main>
 

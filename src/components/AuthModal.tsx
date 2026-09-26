@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
+import { X, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, KeyRound, User, Stethoscope, ShieldCheck } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 import { dataService } from '../lib/dataService';
@@ -11,52 +11,13 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
+  const [selectedPortal, setSelectedPortal] = useState<'patient' | 'doctor' | 'admin'>('patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isSettingPasswordOpen, setIsSettingPasswordOpen] = useState(false);
   const [infoMessage, setInfoMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Détection automatique du rôle en arrière-plan à la soumission
-  const detectUserRole = (inputEmail: string): { role: UserRole; name: string } => {
-    const clean = inputEmail.trim().toLowerCase();
-
-    // Seuls les 2 Super Admins officiels ont accès à l'administration
-    if (clean === 'danielkiboko218@gmail.com') {
-      return {
-        role: 'admin',
-        name: 'KIBOKO Daniel'
-      };
-    }
-
-    if (clean === 'kibongef15@gmail.com') {
-      return {
-        role: 'admin',
-        name: 'KIBONGE François'
-      };
-    }
-
-    if (clean.includes('doc') || clean.includes('dr.') || clean.includes('marie.laurent') || clean.includes('cabinet') || clean.includes('clinique')) {
-      return {
-        role: 'doctor',
-        name: clean.includes('marie') ? 'Dr. Marie Laurent' : 'Dr. Praticien'
-      };
-    }
-
-    if (clean.includes('pharmacie') || clean.includes('pharma') || clean.includes('officine')) {
-      return {
-        role: 'pharmacy',
-        name: 'Pharmacie du Centre - Gombe'
-      };
-    }
-
-    // Tout autre utilisateur est un patient
-    return {
-      role: 'patient',
-      name: clean ? clean.split('@')[0].replace(/[._]/g, ' ') : 'Patient'
-    };
-  };
 
   // Réinitialisation du mot de passe (Mot de passe oublié)
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
@@ -81,21 +42,79 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setIsSubmitting(false);
   };
 
-  // Connexion avec vérification stricte et isolée du mot de passe
+  // Connexion avec séparation claire des dossiers (Patient, Praticien, Admin)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
     setIsSubmitting(true);
     setInfoMessage(null);
+    const cleanEmail = email.trim().toLowerCase();
 
-    const detected = detectUserRole(email);
+    // 1. DOSSIER PATIENT (Accès garanti à l'espace patient / carnet de santé)
+    if (selectedPortal === 'patient') {
+      const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
+      if (storedPwd && storedPwd !== password) {
+        setInfoMessage({
+          text: `Mot de passe incorrect pour le compte patient ${email.trim()}.`,
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      } else if (password && typeof window !== 'undefined') {
+        window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
+      }
 
-    // Vérification de sécurité stricte pour les comptes Super Administrateurs
-    if (detected.role === 'admin') {
+      const displayName = cleanEmail.includes('daniel') 
+        ? 'KIBOKO Daniel' 
+        : cleanEmail.includes('kibonge') 
+          ? 'KIBONGE François' 
+          : cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+
+      onLogin({
+        name: displayName,
+        role: 'patient',
+        email: email.trim()
+      });
+      return;
+    }
+
+    // 2. DOSSIER PRATICIEN / PRO
+    if (selectedPortal === 'doctor') {
+      const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
+      if (storedPwd && storedPwd !== password) {
+        setInfoMessage({
+          text: `Mot de passe incorrect pour ce compte professionnel.`,
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      } else if (password && typeof window !== 'undefined') {
+        window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
+      }
+
+      onLogin({
+        name: cleanEmail.includes('marie') ? 'Dr. Marie Laurent' : 'Dr. Praticien Partenaire',
+        role: 'doctor',
+        email: email.trim()
+      });
+      return;
+    }
+
+    // 3. CONSOLE SUPER ADMIN (Accès strictement vérifié aux 2 Super Admins)
+    if (selectedPortal === 'admin') {
+      if (cleanEmail !== 'danielkiboko218@gmail.com' && cleanEmail !== 'kibongef15@gmail.com') {
+        setInfoMessage({
+          text: "Accès refusé. Seuls les Super Administrateurs autorisés peuvent se connecter à cette console.",
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!password) {
         setInfoMessage({ 
-          text: "Veuillez saisir votre mot de passe pour ce compte administrateur.", 
+          text: "Veuillez saisir votre mot de passe administrateur.", 
           type: 'error' 
         });
         setIsSubmitting(false);
@@ -104,55 +123,27 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
 
       // Vérification du mot de passe propre à cet administrateur spécifique
       const check = await dataService.verifyAdminPassword(email, password);
-
       if (!check.valid) {
         setInfoMessage({ 
-          text: check.message || `Mot de passe incorrect pour le compte ${email.trim()}. Chaque administrateur doit utiliser son propre mot de passe distinct.`, 
+          text: check.message || `Mot de passe incorrect pour le compte administrateur ${email.trim()}.`, 
           type: 'error' 
         });
         setIsSubmitting(false);
         return;
       }
 
-      // Mot de passe validé pour cet admin !
       onLogin({
-        name: detected.name,
+        name: cleanEmail.includes('daniel') ? 'KIBOKO Daniel' : 'KIBONGE François',
         role: 'admin',
         email: email.trim()
       });
       return;
     }
-
-    // Autres rôles (Médecins, Pharmacies, Patients)
-    const cleanEmail = email.trim().toLowerCase();
-    const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
-
-    if (storedPwd) {
-      if (storedPwd !== password) {
-        setInfoMessage({
-          text: `Mot de passe incorrect pour le compte ${email.trim()}. Veuillez vérifier votre saisie ou utiliser "Mot de passe oublié ?".`,
-          type: 'error'
-        });
-        setIsSubmitting(false);
-        return;
-      }
-    } else if (password) {
-      // Premier accès : enregistrer son mot de passe pour les prochaines visites
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
-      }
-    }
-
-    onLogin({
-      name: detected.name,
-      role: detected.role,
-      email: email.trim()
-    });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-7 sm:p-8 relative animate-in fade-in zoom-in duration-200 border border-slate-100">
+      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative animate-in fade-in zoom-in duration-200 border border-slate-100">
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 rounded-full transition"
@@ -161,23 +152,69 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
         </button>
 
         {/* Logo SangO Health */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <div className="flex justify-center mb-3">
             <img 
               src="/brand/sango-logo-blue.png" 
               alt="SangO Health" 
-              className="h-11 w-auto object-contain" 
+              className="h-10 w-auto object-contain" 
             />
           </div>
           <h2 className="font-brand text-2xl font-black text-slate-900">
-            {isForgotPassword ? 'Mot de passe oublié' : 'Portail SangO Health'}
+            {isForgotPassword ? 'Mot de passe oublié' : 'Connexion SangO Health'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {isForgotPassword 
               ? 'Recevez un lien de réinitialisation sécurisé par email' 
-              : 'Connectez-vous pour accéder à votre espace dédié'}
+              : selectedPortal === 'patient' 
+                ? 'Mon Dossier Santé & Historique des Rendez-vous'
+                : selectedPortal === 'doctor'
+                  ? 'Gestion de cabinet & Téléconsultations'
+                  : 'Console Super Admin (Daniel & François)'}
           </p>
         </div>
+
+        {/* Séparation claire des dossiers via des onglets visuels */}
+        {!isForgotPassword && (
+          <div className="flex bg-slate-100 p-1 rounded-2xl mb-5 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => { setSelectedPortal('patient'); setInfoMessage(null); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                selectedPortal === 'patient' 
+                  ? 'bg-white text-blue-700 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Dossier Patient</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSelectedPortal('doctor'); setInfoMessage(null); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                selectedPortal === 'doctor' 
+                  ? 'bg-white text-blue-700 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Stethoscope className="w-3.5 h-3.5" />
+              <span>Praticien</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSelectedPortal('admin'); setInfoMessage(null); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                selectedPortal === 'admin' 
+                  ? 'bg-white text-blue-700 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Super Admin</span>
+            </button>
+          </div>
+        )}
 
         {/* Message d'information/succès/erreur */}
         {infoMessage && (
@@ -195,7 +232,6 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             )}
             <div className="flex-1">
               <span>{infoMessage.text}</span>
-              {/* Option directe pour définir le mot de passe si non configuré */}
               {infoMessage.type === 'error' && infoMessage.text.includes('configuré') && (
                 <div className="mt-2">
                   <button
@@ -269,11 +305,15 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             </div>
           </form>
         ) : (
-          /* FORMULAIRE CONNEXION UNIFIÉ */
+          /* FORMULAIRE CONNEXION */
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Adresse Email
+                {selectedPortal === 'patient' 
+                  ? 'Email Patient' 
+                  : selectedPortal === 'doctor' 
+                    ? 'Email Professionnel' 
+                    : 'Email Super Admin'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -284,7 +324,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nom@exemple.com"
+                  placeholder={selectedPortal === 'admin' ? "danielkiboko218@gmail.com" : "votre-email@exemple.com"}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                 />
               </div>
@@ -307,7 +347,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                     }}
                     className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
                   >
-                    Créer mon mot de passe
+                    Définir mot de passe
                   </button>
                   <span className="text-slate-300">•</span>
                   <button
@@ -318,7 +358,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                     }}
                     className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 transition"
                   >
-                    Mot de passe oublié ?
+                    Oublié ?
                   </button>
                 </div>
               </div>
@@ -341,7 +381,13 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               disabled={isSubmitting || !email.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2"
             >
-              <span>Se connecter</span>
+              <span>
+                {selectedPortal === 'patient' 
+                  ? 'Ouvrir mon dossier patient' 
+                  : selectedPortal === 'doctor' 
+                    ? 'Accéder au cabinet praticien' 
+                    : 'Accéder au SaaS Control Panel'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -358,6 +404,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                 type: 'success'
               });
               setPassword('');
+              setIsSettingPasswordOpen(false);
             }}
           />
         )}

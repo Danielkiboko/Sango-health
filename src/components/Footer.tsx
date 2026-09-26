@@ -33,9 +33,9 @@ export default function Footer({ setCurrentView, onOpenAuthForDoctor }: FooterPr
         <div>
           <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Professionnels de santé</h4>
           <ul className="space-y-2 text-sm">
-            <li><button onClick={onOpenAuthForDoctor} className="hover:text-white transition">Vous êtes médecin ?</button></li>
-            <li><a href="#pro" onClick={(e) => { e.preventDefault(); setCurrentView('doctor_portal'); }} className="hover:text-white transition">Gestion de cabinet</a></li>
-            <li><a href="#saas" onClick={(e) => { e.preventDefault(); setCurrentView('saas_admin'); }} className="hover:text-white transition">Console SaaS Admin</a></li>
+            <li><button onClick={onOpenAuthForDoctor} className="hover:text-white transition">Vous êtes praticien ?</button></li>
+            <li><a href="#pro" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">Espace Professionnel</a></li>
+            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">Répertoire Médical</button></li>
           </ul>
         </div>
         <div>
