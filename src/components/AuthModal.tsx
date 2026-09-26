@@ -22,24 +22,18 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
   const detectUserRole = (inputEmail: string): { role: UserRole; name: string } => {
     const clean = inputEmail.trim().toLowerCase();
 
-    if (clean === 'danielkiboko218@gmail.com' || clean.includes('danielkiboko')) {
+    // Seuls les 2 Super Admins officiels ont accès à l'administration
+    if (clean === 'danielkiboko218@gmail.com') {
       return {
         role: 'admin',
         name: 'KIBOKO Daniel'
       };
     }
 
-    if (clean === 'kibongef15@gmail.com' || clean.includes('kibonge')) {
+    if (clean === 'kibongef15@gmail.com') {
       return {
         role: 'admin',
         name: 'KIBONGE François'
-      };
-    }
-
-    if (clean.includes('admin') || clean.includes('direction')) {
-      return {
-        role: 'admin',
-        name: 'Administrateur SangO'
       };
     }
 
@@ -57,6 +51,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
       };
     }
 
+    // Tout autre utilisateur est un patient
     return {
       role: 'patient',
       name: clean ? clean.split('@')[0].replace(/[._]/g, ' ') : 'Patient'
@@ -129,6 +124,25 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     }
 
     // Autres rôles (Médecins, Pharmacies, Patients)
+    const cleanEmail = email.trim().toLowerCase();
+    const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
+
+    if (storedPwd) {
+      if (storedPwd !== password) {
+        setInfoMessage({
+          text: `Mot de passe incorrect pour le compte ${email.trim()}. Veuillez vérifier votre saisie ou utiliser "Mot de passe oublié ?".`,
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    } else if (password) {
+      // Premier accès : enregistrer son mot de passe pour les prochaines visites
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
+      }
+    }
+
     onLogin({
       name: detected.name,
       role: detected.role,
