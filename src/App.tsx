@@ -31,12 +31,8 @@ export default function SangoHealthApp() {
   const [isSetPasswordModalOpen, setIsSetPasswordModalOpen] = useState<boolean>(false);
   const [authModalRole, setAuthModalRole] = useState<UserRole>('patient');
 
-  // Currently logged in user (starts with Christian Kabeya as default patient)
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>({
-    name: "Christian Kabeya",
-    role: "patient",
-    email: "christian@sangohealth.cd"
-  });
+  // Currently logged in user (null by default so login buttons are clearly visible)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [doctors, setDoctors] = useState<Doctor[]>(INITIAL_DOCTORS);
@@ -203,12 +199,12 @@ export default function SangoHealthApp() {
         </div>
       )}
 
-      {/* Header - Clean, Uncluttered, with 'Se connecter' button */}
+      {/* Header - Clean, Uncluttered, with 'Se connecter' and 'Portail Admin' buttons */}
       <Header
         currentView={currentView}
         setCurrentView={setCurrentView}
         currentUser={currentUser}
-        onOpenAuthModal={() => { setAuthModalRole('patient'); setIsAuthModalOpen(true); }}
+        onOpenAuthModal={(role) => { setAuthModalRole(role || 'patient'); setIsAuthModalOpen(true); }}
         onLogout={handleLogout}
       />
 
