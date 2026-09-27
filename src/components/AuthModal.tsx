@@ -44,7 +44,10 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setIsSubmitting(false);
   };
 
-  // Connexion avec séparation claire des dossiers (Patient, Praticien, Admin)
+  const SUPER_ADMIN_EMAILS = ['danielkiboko218@gmail.com', 'kibongef15@gmail.com'];
+  const isSuperAdminEmail = (emailStr: string) => SUPER_ADMIN_EMAILS.includes(emailStr.trim().toLowerCase());
+
+  // Connexion avec séparation stricte des dossiers (Patient, Praticien, Admin)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -53,8 +56,28 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setInfoMessage(null);
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. DOSSIER PATIENT (Accès garanti à l'espace patient / carnet de santé)
+    // SÉCURITÉ ABSOLUE : Vérification que l'email Admin ne peut JAMAIS devenir Patient ou Médecin
+    if (isSuperAdminEmail(cleanEmail) && selectedPortal !== 'admin') {
+      setSelectedPortal('admin');
+      setInfoMessage({
+        text: "🔒 Sécurité : Cette adresse est enregistrée comme Super Administrateur. Vous ne pouvez pas vous connecter en tant que patient ou praticien avec cet email. Veuillez saisir votre mot de passe administrateur.",
+        type: 'error'
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 1. DOSSIER PATIENT (Réservé exclusivement aux patients)
     if (selectedPortal === 'patient') {
+      if (isSuperAdminEmail(cleanEmail)) {
+        setInfoMessage({
+          text: "Accès refusé. Cette adresse email appartient à un Super Administrateur et ne peut pas créer de dossier patient.",
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
       if (storedPwd && storedPwd !== password) {
         setInfoMessage({
@@ -67,22 +90,27 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
         window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
       }
 
-      const displayName = cleanEmail.includes('daniel') 
-        ? 'KIBOKO Daniel' 
-        : cleanEmail.includes('kibonge') 
-          ? 'KIBONGE François' 
-          : cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+      const displayName = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
 
       onLogin({
-        name: displayName,
+        name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
         role: 'patient',
         email: email.trim()
       });
       return;
     }
 
-    // 2. DOSSIER PRATICIEN / PRO
+    // 2. DOSSIER PRATICIEN / PRO (Réservé aux soignants)
     if (selectedPortal === 'doctor') {
+      if (isSuperAdminEmail(cleanEmail)) {
+        setInfoMessage({
+          text: "Accès refusé. Cette adresse email appartient à un Super Administrateur.",
+          type: 'error'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const storedPwd = typeof window !== 'undefined' ? window.localStorage.getItem(`sango_pwd_${cleanEmail}`) : null;
       if (storedPwd && storedPwd !== password) {
         setInfoMessage({
@@ -103,11 +131,11 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
       return;
     }
 
-    // 3. CONSOLE SUPER ADMIN (Accès strictement vérifié aux 2 Super Admins)
+    // 3. CONSOLE SUPER ADMIN (Accès strictement vérifié et réservé aux Super Admins)
     if (selectedPortal === 'admin') {
-      if (cleanEmail !== 'danielkiboko218@gmail.com' && cleanEmail !== 'kibongef15@gmail.com') {
+      if (!isSuperAdminEmail(cleanEmail)) {
         setInfoMessage({
-          text: "Accès refusé. Seuls les Super Administrateurs autorisés peuvent se connecter à cette console.",
+          text: "Accès refusé. Seuls les Super Administrateurs autorisés (Daniel KIBOKO & François KIBONGE) peuvent se connecter à cette console.",
           type: 'error'
         });
         setIsSubmitting(false);
@@ -181,7 +209,17 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
           <div className="flex bg-slate-100 p-1 rounded-2xl mb-5 border border-slate-200">
             <button
               type="button"
-              onClick={() => { setSelectedPortal('patient'); setInfoMessage(null); }}
+              onClick={() => { 
+                if (isSuperAdminEmail(email)) {
+                  setInfoMessage({
+                    text: "🔒 Ce compte est un Super Administrateur. Le rôle est strictement verrouillé sur la Console d'Administration.",
+                    type: 'error'
+                  });
+                  return;
+                }
+                setSelectedPortal('patient'); 
+                setInfoMessage(null); 
+              }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
                 selectedPortal === 'patient' 
                   ? 'bg-white text-blue-700 shadow-sm' 
@@ -193,7 +231,17 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => { setSelectedPortal('doctor'); setInfoMessage(null); }}
+              onClick={() => { 
+                if (isSuperAdminEmail(email)) {
+                  setInfoMessage({
+                    text: "🔒 Ce compte est un Super Administrateur. Le rôle est strictement verrouillé sur la Console d'Administration.",
+                    type: 'error'
+                  });
+                  return;
+                }
+                setSelectedPortal('doctor'); 
+                setInfoMessage(null); 
+              }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
                 selectedPortal === 'doctor' 
                   ? 'bg-white text-blue-700 shadow-sm' 
@@ -325,7 +373,17 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEmail(val);
+                    if (isSuperAdminEmail(val)) {
+                      setSelectedPortal('admin');
+                      setInfoMessage({
+                        text: "🛡️ Compte Super Administrateur détecté : accès automatiquement verrouillé sur le C-Panel.",
+                        type: 'info'
+                      });
+                    }
+                  }}
                   placeholder={selectedPortal === 'admin' ? "danielkiboko218@gmail.com" : "votre-email@exemple.com"}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                 />

@@ -50,7 +50,7 @@ export default function Header({
               onClick={() => setCurrentView('search')} 
               className={`hover:text-blue-600 transition ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
             >
-              {t('nav_find_doctor')}
+              {currentUser?.role === 'admin' ? 'Annuaire Praticiens' : t('nav_find_doctor')}
             </button>
 
             {/* Conditional contextual link based on logged in role */}
@@ -146,8 +146,13 @@ export default function Header({
                     <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[90px] sm:max-w-[130px]">
                       {currentUser.name.split(' ')[0]}
                     </div>
-                    <div className="text-[9px] sm:text-[10px] text-blue-600 font-semibold uppercase tracking-wider">
-                      {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'doctor' ? 'Médecin' : currentUser.role === 'pharmacy' ? 'Pharmacie' : 'Patient'}
+                    <div className="text-[9px] sm:text-[10px] text-blue-600 font-semibold uppercase tracking-wider flex items-center space-x-1">
+                      {currentUser.role === 'admin' ? (
+                        <>
+                          <ShieldCheck className="w-3 h-3 text-blue-600 shrink-0 inline" />
+                          <span className="font-bold">Super Admin</span>
+                        </>
+                      ) : currentUser.role === 'doctor' ? 'Médecin' : currentUser.role === 'pharmacy' ? 'Pharmacie' : 'Patient'}
                     </div>
                   </div>
                 </button>
@@ -192,7 +197,7 @@ export default function Header({
           }`}
         >
           <Search className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">{t('nav_find_doctor')}</span>
+          <span className="text-[10px]">{currentUser?.role === 'admin' ? 'Annuaire' : t('nav_find_doctor')}</span>
         </button>
 
         {currentUser?.role === 'admin' ? (

@@ -257,6 +257,19 @@ export default function SangoHealthApp() {
     showNotification("Déconnecté avec succès", "info");
   };
 
+  const handleSelectDoctor = (doc: Doctor) => {
+    if (currentUser?.role === 'admin') {
+      showNotification("ℹ️ Vous êtes connecté en tant qu'Administrateur. La prise de rendez-vous est réservée aux patients. Rendez-vous sur le C-Panel pour superviser les praticiens.", "info");
+      return;
+    }
+    if (currentUser?.role === 'doctor') {
+      showNotification("ℹ️ Vous êtes connecté avec un compte Médecin. La prise de rendez-vous en ligne est réservée aux comptes patients.", "info");
+      return;
+    }
+    setSelectedDoctor(doc);
+    setIsBookingModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-800">
       {/* Toast Notification Banner */}
@@ -289,7 +302,7 @@ export default function SangoHealthApp() {
             setSearchLocation={setSearchLocation}
             onSearchSubmit={handleSearchSubmit}
             doctors={doctors}
-            onSelectDoctor={(doc) => { setSelectedDoctor(doc); setIsBookingModalOpen(true); }}
+            onSelectDoctor={handleSelectDoctor}
             onNavigateSearch={() => setCurrentView('search')}
           />
         )}
@@ -299,7 +312,7 @@ export default function SangoHealthApp() {
             doctors={doctors}
             initialSpecialty={searchSpecialty}
             initialLocation={searchLocation}
-            onSelectDoctor={(doc) => { setSelectedDoctor(doc); setIsBookingModalOpen(true); }}
+            onSelectDoctor={handleSelectDoctor}
             onBack={() => setCurrentView('home')}
           />
         )}

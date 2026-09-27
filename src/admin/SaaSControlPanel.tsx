@@ -221,7 +221,7 @@ export default function SaaSControlPanel({
 
         {/* Navigation */}
         <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto">
-          {/* Appointments */}
+          {/* Supervision des Consultations */}
           <button
             onClick={() => { setActiveTab('appointments'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
@@ -229,9 +229,10 @@ export default function SaaSControlPanel({
                 ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
+            title="Supervision et audit des consultations du réseau"
           >
-            <Calendar className={`w-5 h-5 ${activeTab === 'appointments' ? 'text-white' : 'text-slate-400'}`} />
-            <span>Appointments</span>
+            <Activity className={`w-5 h-5 ${activeTab === 'appointments' ? 'text-blue-400' : 'text-slate-400'}`} />
+            <span>Supervision Consultations</span>
             {appointments && appointments.length > 0 && (
               <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
                 {appointments.length}
@@ -387,7 +388,7 @@ export default function SaaSControlPanel({
                   Control Panel SaaS
                 </span>
                 <span className="text-xs text-slate-400 hidden sm:inline">
-                  {activeTab === 'appointments' && 'Gestion de l\'agenda & rendez-vous du réseau'}
+                  {activeTab === 'appointments' && 'Supervision globale des flux & consultations du réseau'}
                   {activeTab === 'messages' && 'Communications & alertes réseau'}
                   {activeTab === 'overview' && 'Supervision & indicateurs de santé'}
                   {activeTab === 'doctors' && 'Gestion des praticiens & établissements'}
@@ -397,7 +398,7 @@ export default function SaaSControlPanel({
                 </span>
               </div>
               <h1 className="text-lg sm:text-xl font-black text-white font-brand capitalize">
-                {activeTab === 'overview' ? 'Health' : activeTab === 'doctors' ? 'Account' : activeTab === 'teleconsultation' ? 'Teleconsultation' : activeTab === 'admins' ? 'Settings' : activeTab}
+                {activeTab === 'overview' ? 'Supervision Santé' : activeTab === 'doctors' ? 'Comptes Praticiens' : activeTab === 'teleconsultation' ? 'Téléconsultation SFU' : activeTab === 'admins' ? 'Sécurité & Admins' : activeTab === 'appointments' ? 'Supervision Consultations' : activeTab}
               </h1>
             </div>
           </div>
@@ -416,9 +417,19 @@ export default function SaaSControlPanel({
 
         {/* Content Container */}
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
-          {/* APPOINTMENTS TAB */}
+          {/* APPOINTMENTS TAB (SUPERVISION RESEAU) */}
           {activeTab === 'appointments' && (
             <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Bannière de cadrage Supervision Admin */}
+              <div className="bg-gradient-to-r from-blue-950/60 to-slate-900 border border-blue-800/50 rounded-2xl p-4 flex items-start space-x-3 shadow-md">
+                <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <h3 className="font-bold text-white text-sm">Supervision Globale des Consultations (Audit Réseau)</h3>
+                  <p className="text-slate-300 mt-0.5">
+                    Cette vue centralise l'ensemble des rendez-vous et téléconsultations pris par les patients auprès des praticiens du réseau. En tant qu'Administrateur, vous disposez d'un droit de regard pour l'audit qualité, la vérification du taux d'honorabilité et l'arbitrage en cas de litige.
+                  </p>
+                </div>
+              </div>
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
                 <div className="flex items-center space-x-3 w-full sm:w-auto">
                   <div className="relative flex-1 sm:w-80">
