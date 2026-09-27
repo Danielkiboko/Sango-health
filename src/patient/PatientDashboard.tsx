@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Appointment, Doctor, Prescription, MedicalDocument } from '../types';
 import VideoConsultationRoomModal from '../components/VideoConsultationRoomModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PatientDashboardProps {
   appointments: Appointment[];
@@ -69,6 +70,7 @@ export default function PatientDashboard({
   onNewBooking,
   onSavePrescription
 }: PatientDashboardProps) {
+  const { t } = useLanguage();
   const [filterTab, setFilterTab] = useState<'upcoming' | 'prescriptions' | 'documents' | 'past'>('upcoming');
   const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(null);
   const [activeVideoCallApp, setActiveVideoCallApp] = useState<Appointment | null>(null);
@@ -244,9 +246,9 @@ export default function PatientDashboard({
             </span>
             <span className="text-xs text-slate-500 font-medium">Kinshasa &bull; Dossier Médical Informatisé</span>
           </div>
-          <h1 className="font-brand text-3xl font-black text-slate-900 tracking-tight">Mon Dossier Santé Patient</h1>
+          <h1 className="font-brand text-3xl font-black text-slate-900 tracking-tight">{t('patient_title')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Consultez vos rendez-vous, ordonnances électroniques, bilans d'analyses et radiographies en un seul lieu sécurisé.
+            {t('patient_subtitle')}
           </p>
         </div>
 
@@ -257,7 +259,7 @@ export default function PatientDashboard({
             className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold px-4 py-3 rounded-2xl shadow-sm transition flex items-center space-x-2 text-xs"
           >
             <Printer className="w-4 h-4 text-blue-600" />
-            <span>Exporter Carnet Santé (PDF)</span>
+            <span>{t('export_health_booklet')}</span>
           </button>
 
           <button 
@@ -265,7 +267,7 @@ export default function PatientDashboard({
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-blue-600/20 transition flex items-center space-x-2 text-xs"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Nouveau Rendez-vous</span>
+            <span>{t('new_booking')}</span>
           </button>
         </div>
       </div>
@@ -280,7 +282,7 @@ export default function PatientDashboard({
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          Rendez-vous à venir ({upcomingAppointments.length})
+          {t('tab_upcoming')} ({upcomingAppointments.length})
         </button>
 
         <button 
@@ -292,7 +294,7 @@ export default function PatientDashboard({
           }`}
         >
           <FileText className="w-4 h-4 text-blue-600" />
-          <span>Mes Ordonnances ({prescriptionAppointments.length})</span>
+          <span>{t('tab_prescriptions')} ({prescriptionAppointments.length})</span>
         </button>
 
         <button 
@@ -304,7 +306,7 @@ export default function PatientDashboard({
           }`}
         >
           <FolderOpen className="w-4 h-4 text-emerald-600" />
-          <span>Mes Analyses & Radios ({documents.length})</span>
+          <span>{t('tab_documents')} ({documents.length})</span>
         </button>
 
         <button 
@@ -315,7 +317,7 @@ export default function PatientDashboard({
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          Historique ({pastAppointments.length})
+          {t('tab_past')} ({pastAppointments.length})
         </button>
       </div>
 
@@ -325,13 +327,13 @@ export default function PatientDashboard({
           {upcomingAppointments.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
               <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Aucun rendez-vous à venir</h3>
-              <p className="text-sm text-slate-500 mb-6">Trouvez un médecin disponible à Kinshasa et réservez en quelques clics.</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">{t('patient_no_upcoming')}</h3>
+              <p className="text-sm text-slate-500 mb-6">{t('hero_subtitle')}</p>
               <button 
                 onClick={onNewBooking}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-2xl shadow-md transition text-xs"
               >
-                Rechercher un praticien
+                {t('nav_find_doctor')}
               </button>
             </div>
           ) : (
@@ -372,14 +374,14 @@ export default function PatientDashboard({
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 transition"
                     >
                       <Video className="w-4 h-4" />
-                      <span>Rejoindre la téléconsultation</span>
+                      <span>{t('patient_join_call')}</span>
                     </button>
                   )}
                   <button 
                     onClick={() => onCancel(app.id)}
                     className="text-rose-600 hover:bg-rose-50 font-bold px-4 py-2.5 rounded-xl text-xs transition border border-rose-200"
                   >
-                    Annuler
+                    {t('patient_cancel_call')}
                   </button>
                 </div>
               </div>
@@ -394,15 +396,15 @@ export default function PatientDashboard({
           {prescriptionAppointments.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Aucune ordonnance délivrée pour le moment</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">{t('patient_no_prescriptions')}</h3>
               <p className="text-sm text-slate-500 mb-6">
-                Lors de votre consultation, votre médecin pourra vous délivrer et signer une ordonnance numérique avec QR Code sécurisé.
+                {t('feat_2_desc')}
               </p>
               <button 
                 onClick={onNewBooking}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-2xl shadow-md transition text-xs"
               >
-                Prendre une consultation
+                {t('new_booking')}
               </button>
             </div>
           ) : (
@@ -423,14 +425,14 @@ export default function PatientDashboard({
                       </div>
 
                       <h3 className="text-base font-bold text-slate-900 font-brand mb-0.5">
-                        Délivrée par {pres.doctorName}
+                        {pres.doctorName}
                       </h3>
                       <p className="text-xs text-blue-600 font-semibold mb-3">
                         Patient : {pres.patientName}
                       </p>
 
                       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-4 space-y-1.5">
-                        <div className="text-[10px] font-bold uppercase text-slate-400">Médicaments prescrits :</div>
+                        <div className="text-[10px] font-bold uppercase text-slate-400">Médicaments :</div>
                         {pres.medications.map((m, idx) => (
                           <div key={idx} className="text-xs text-slate-800 flex items-center justify-between">
                             <span className="font-semibold">&bull; {m.name}</span>
@@ -455,7 +457,7 @@ export default function PatientDashboard({
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition shadow"
                       >
                         <Printer className="w-3.5 h-3.5" />
-                        <span>Imprimer / Afficher</span>
+                        <span>{t('patient_print_rx')}</span>
                       </button>
                     </div>
                   </div>
@@ -474,11 +476,11 @@ export default function PatientDashboard({
             <div>
               <div className="flex items-center space-x-2 mb-1">
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase">
-                  Coffre-fort Médical
+                  {t('tab_documents')}
                 </span>
                 <span className="text-xs text-slate-500">Stockage sécurisé et partagé</span>
               </div>
-              <h3 className="font-brand text-xl font-black text-slate-900">Analyses Biologiques & Imagerie Médicale</h3>
+              <h3 className="font-brand text-xl font-black text-slate-900">{t('tab_documents')}</h3>
               <p className="text-xs text-slate-600 mt-1 max-w-xl">
                 Importez vos résultats de laboratoire (INRB, CMK...) et clichés de radio pour que votre médecin puisse les étudier avant votre consultation.
               </p>
@@ -489,7 +491,7 @@ export default function PatientDashboard({
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-emerald-600/20 transition flex items-center space-x-2 text-xs shrink-0 self-start sm:self-auto"
             >
               <Upload className="w-4 h-4" />
-              <span>Ajouter un document</span>
+              <span>{t('add_document')}</span>
             </button>
           </div>
 
@@ -497,13 +499,13 @@ export default function PatientDashboard({
           {documents.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
               <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Aucun document médical importé</h3>
-              <p className="text-sm text-slate-500 mb-6">Ajoutez vos analyses de sang, échographies ou radiographies en quelques clics.</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">{t('patient_no_documents')}</h3>
+              <p className="text-sm text-slate-500 mb-6">{t('patient_subtitle')}</p>
               <button 
                 onClick={() => setIsUploadModalOpen(true)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-2xl shadow-md transition text-xs"
               >
-                Ajouter mon premier document
+                {t('add_document')}
               </button>
             </div>
           ) : (
@@ -548,10 +550,10 @@ export default function PatientDashboard({
                       {doc.isSharedWithDoctor ? (
                         <span className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 bg-emerald-50 px-2 py-0.5 rounded-md">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Partagé médecin</span>
+                          <span>{t('patient_shared_with_doctor')}</span>
                         </span>
                       ) : (
-                        <span className="text-[11px] text-slate-400">Privé</span>
+                        <span className="text-[11px] text-slate-400">{t('patient_private_doc')}</span>
                       )}
                       <span className="text-[11px] text-slate-400 font-mono">({doc.fileSize})</span>
                     </div>
@@ -562,7 +564,7 @@ export default function PatientDashboard({
                         className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center space-x-1 transition"
                       >
                         <Eye className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Aperçu</span>
+                        <span>{t('patient_view_doc')}</span>
                       </button>
                       <button
                         onClick={() => handleDeleteDocument(doc.id)}
@@ -586,7 +588,7 @@ export default function PatientDashboard({
           {pastAppointments.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
               <Clock className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Aucune consultation passée</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">{t('patient_no_past')}</h3>
               <p className="text-sm text-slate-500">L'historique complet de vos rendez-vous médicaux s'affichera ici.</p>
             </div>
           ) : (

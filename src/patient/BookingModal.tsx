@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Building2, Video, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Doctor } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface BookingModalProps {
   doctor: Doctor;
@@ -9,6 +10,7 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ doctor, onClose, onConfirmBooking }: BookingModalProps) {
+  const { t } = useLanguage();
   const [selectedDate, setSelectedDate] = useState('2026-06-12');
   const [selectedTime, setSelectedTime] = useState(doctor.slots[0] || '10:00');
   const [consultType, setConsultType] = useState('Cabinet');
@@ -43,7 +45,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
           {/* Consultation Type */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Mode de consultation
+              {t('booking_mode_label')}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button 
@@ -56,7 +58,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
                 }`}
               >
                 <Building2 className="w-4 h-4 text-blue-600" />
-                <span>Au cabinet</span>
+                <span>{t('booking_mode_cabinet')}</span>
               </button>
 
               <button 
@@ -69,7 +71,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
                 }`}
               >
                 <Video className="w-4 h-4 text-blue-600" />
-                <span>Téléconsultation Visio</span>
+                <span>{t('booking_mode_video')}</span>
               </button>
             </div>
           </div>
@@ -77,17 +79,17 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
           {/* Reason */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Motif de consultation
+              {t('booking_reason_label')}
             </label>
             <select 
               value={reason} 
               onChange={(e) => setReason(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-500"
             >
-              <option value="Première consultation">Première consultation</option>
-              <option value="Consultation de suivi">Consultation de suivi</option>
-              <option value="Renouvellement de traitement">Renouvellement de traitement</option>
-              <option value="Urgence relative">Urgence relative</option>
+              <option value="Première consultation">{t('booking_reason_first')}</option>
+              <option value="Consultation de suivi">{t('booking_reason_followup')}</option>
+              <option value="Renouvellement de traitement">{t('booking_reason_refill')}</option>
+              <option value="Urgence relative">{t('booking_reason_urgent')}</option>
             </select>
           </div>
 
@@ -95,7 +97,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
               <CalendarIcon className="w-3.5 h-3.5 text-blue-600" />
-              <span>Date du rendez-vous</span>
+              <span>{t('booking_date_label')}</span>
             </label>
             <input 
               type="date" 
@@ -109,7 +111,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
               <Clock className="w-3.5 h-3.5 text-blue-600" />
-              <span>Créneaux disponibles</span>
+              <span>{t('booking_time_label')}</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
               {doctor.slots.map((slot) => (
@@ -130,7 +132,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
           </div>
 
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Tarif consultation :</span>
+            <span className="text-slate-500">{t('booking_fee_label')} :</span>
             <span className="font-black text-slate-900 text-sm">{doctor.fee}</span>
           </div>
 
@@ -139,12 +141,12 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2"
           >
             <CheckCircle className="w-5 h-5" />
-            <span>Confirmer mon rendez-vous</span>
+            <span>{t('booking_confirm_button')}</span>
           </button>
 
           <p className="text-center text-[11px] text-slate-400 flex items-center justify-center space-x-1">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-            <span>Réservation sécurisée &bull; Annulation gratuite</span>
+            <span>{t('booking_secure_notice')}</span>
           </p>
         </form>
       </div>

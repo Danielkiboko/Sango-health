@@ -4,6 +4,7 @@ import { UserProfile, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 import { dataService } from '../lib/dataService';
 import SetPasswordModal from './SetPasswordModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
+  const { t } = useLanguage();
   const [selectedPortal, setSelectedPortal] = useState<'patient' | 'doctor' | 'admin'>('patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -187,7 +189,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span>Dossier Patient</span>
+              <span>{t('auth_tab_patient')}</span>
             </button>
             <button
               type="button"
@@ -199,7 +201,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
-              <span>Praticien</span>
+              <span>{t('auth_tab_doctor')}</span>
             </button>
             <button
               type="button"
@@ -211,7 +213,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Super Admin</span>
+              <span>{t('auth_tab_admin')}</span>
             </button>
           </div>
         )}
@@ -333,7 +335,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Mot de passe
+                  {t('auth_password')}
                 </label>
                 <div className="flex items-center space-x-2">
                   <button
@@ -347,7 +349,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                     }}
                     className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
                   >
-                    Définir mot de passe
+                    {t('auth_set_pwd')}
                   </button>
                   <span className="text-slate-300">•</span>
                   <button
@@ -358,7 +360,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                     }}
                     className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 transition"
                   >
-                    Oublié ?
+                    {t('auth_forgot')}
                   </button>
                 </div>
               </div>
@@ -381,13 +383,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               disabled={isSubmitting || !email.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2"
             >
-              <span>
-                {selectedPortal === 'patient' 
-                  ? 'Ouvrir mon dossier patient' 
-                  : selectedPortal === 'doctor' 
-                    ? 'Accéder au cabinet praticien' 
-                    : 'Accéder au SaaS Control Panel'}
-              </span>
+              <span>{t('auth_submit')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

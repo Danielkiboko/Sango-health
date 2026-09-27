@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FooterProps {
   setCurrentView: (view: string) => void;
@@ -7,6 +8,8 @@ interface FooterProps {
 }
 
 export default function Footer({ setCurrentView, onOpenAuthForDoctor }: FooterProps) {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -19,28 +22,28 @@ export default function Footer({ setCurrentView, onOpenAuthForDoctor }: FooterPr
             />
           </div>
           <p className="text-sm text-slate-400">
-            La plateforme SaaS médicale de référence pour simplifier vos rendez-vous et accéder à des soins de qualité en cabinet et téléconsultation.
+            {t('footer_desc')}
           </p>
         </div>
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Patients</h4>
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">{t('footer_patients')}</h4>
           <ul className="space-y-2 text-sm">
-            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">Rechercher un médecin</button></li>
-            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">Téléconsultation</button></li>
-            <li><button onClick={() => setCurrentView('dashboard')} className="hover:text-white transition">Carnet de santé</button></li>
+            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">{t('footer_find_doctor')}</button></li>
+            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">{t('footer_teleconsultation')}</button></li>
+            <li><button onClick={() => setCurrentView('dashboard')} className="hover:text-white transition">{t('footer_health_record')}</button></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Professionnels de santé</h4>
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">{t('footer_pros')}</h4>
           <ul className="space-y-2 text-sm">
-            <li><button onClick={onOpenAuthForDoctor} className="hover:text-white transition">Vous êtes praticien ?</button></li>
-            <li><a href="#pro" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">Espace Professionnel</a></li>
-            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">Répertoire Médical</button></li>
+            <li><button onClick={onOpenAuthForDoctor} className="hover:text-white transition">{t('footer_are_you_pro')}</button></li>
+            <li><a href="#pro" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">{t('footer_pro_space')}</a></li>
+            <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">{t('footer_directory')}</button></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Assistance & Urgences</h4>
-          <p className="text-xs text-slate-400 mb-3">En cas d'urgence vitale, veuillez contacter immédiatement les services de secours de votre région.</p>
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">{t('footer_emergency_title')}</h4>
+          <p className="text-xs text-slate-400 mb-3">{t('footer_emergency_desc')}</p>
           <div className="flex items-center space-x-2 text-white font-bold bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 w-fit">
             <Phone className="w-4 h-4 text-blue-400" />
             <span>112 / 117</span>
@@ -48,7 +51,7 @@ export default function Footer({ setCurrentView, onOpenAuthForDoctor }: FooterPr
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} SangO Health Inc. Tous droits réservés. Plateforme médicale digitalisée en RDC.
+        &copy; {new Date().getFullYear()} SangO Health Inc. {t('footer_rights')}
       </div>
     </footer>
   );

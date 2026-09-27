@@ -29,6 +29,7 @@ import { Doctor, SaaSDoctorAccount, SuperAdminUser } from '../types';
 import { INITIAL_SAAS_ACCOUNTS } from '../data/saasAccounts';
 import { dataService } from '../lib/dataService';
 import SetPasswordModal from '../components/SetPasswordModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SaaSControlPanelProps {
   doctors: Doctor[];
@@ -37,6 +38,7 @@ interface SaaSControlPanelProps {
 }
 
 export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: SaaSControlPanelProps) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'billing' | 'infrastructure' | 'admins'>('overview');
   const [accounts, setAccounts] = useState<SaaSDoctorAccount[]>(INITIAL_SAAS_ACCOUNTS);
   const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
@@ -172,7 +174,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
                 </span>
                 <span className="text-xs text-slate-400">Supervision Business B2B</span>
               </div>
-              <h1 className="text-xl font-black text-white font-brand">SangO Health &bull; Administration Centrale</h1>
+              <h1 className="text-xl font-black text-white font-brand">{t('cpanel_title')}</h1>
             </div>
           </div>
 
@@ -182,7 +184,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center space-x-2"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Créer un Médecin / Cabinet</span>
+              <span>{t('cpanel_add_doctor')}</span>
             </button>
           </div>
         </div>
@@ -198,7 +200,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>Vue d'Ensemble Business</span>
+            <span>{t('cpanel_tab_overview')}</span>
           </button>
           <button
             onClick={() => setActiveTab('doctors')}
@@ -209,7 +211,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             }`}
           >
             <Stethoscope className="w-4 h-4" />
-            <span>Cabinets & Médecins ({accounts.length})</span>
+            <span>{t('cpanel_tab_doctors')} ({accounts.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('billing')}
@@ -220,7 +222,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>Abonnements & Plans SaaS</span>
+            <span>{t('cpanel_tab_billing')}</span>
           </button>
           <button
             onClick={() => setActiveTab('infrastructure')}
@@ -231,7 +233,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             }`}
           >
             <Video className="w-4 h-4" />
-            <span>Usage Vidéo Réseau</span>
+            <span>{t('cpanel_tab_infra')}</span>
           </button>
           <button
             onClick={() => setActiveTab('admins')}
@@ -242,7 +244,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Équipe & Super Admins ({superAdmins.length || 2})</span>
+            <span>{t('cpanel_tab_admins')} ({superAdmins.length || 2})</span>
           </button>
         </div>
       </div>

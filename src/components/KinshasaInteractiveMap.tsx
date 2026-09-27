@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Doctor, PharmacyOnDuty } from '../types';
 import { KINSHASA_PHARMACIES_ON_DUTY } from '../data/pharmacies';
+import { useLanguage } from '../context/LanguageContext';
 
 interface KinshasaInteractiveMapProps {
   doctors: Doctor[];
@@ -23,6 +24,7 @@ interface KinshasaInteractiveMapProps {
 }
 
 export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: KinshasaInteractiveMapProps) {
+  const { t } = useLanguage();
   const [filterType, setFilterType] = useState<'all' | 'doctors' | 'pharmacies'>('all');
   const [selectedCommune, setSelectedCommune] = useState<string>('all');
   const [activeItem, setActiveItem] = useState<{ type: 'doctor'; data: Doctor } | { type: 'pharmacy'; data: PharmacyOnDuty } | null>(null);
@@ -71,14 +73,14 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-              Kinshasa Santé Direct & Garde 24h/24
+              {t('map_live_badge')}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white font-brand flex items-center space-x-2">
-            <span>Carte Médicale Interactive</span>
+            <span>{t('map_title')}</span>
           </h2>
           <p className="text-xs text-slate-400">
-            Localisez les cabinets médicaux et les pharmacies de garde ouvertes autour de vous.
+            {t('map_subtitle')}
           </p>
         </div>
 
@@ -92,7 +94,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                 filterType === 'all' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Tous ({doctors.length + KINSHASA_PHARMACIES_ON_DUTY.length})
+              {t('map_all_filter')} ({doctors.length + KINSHASA_PHARMACIES_ON_DUTY.length})
             </button>
             <button
               onClick={() => { setFilterType('doctors'); setActiveItem(null); }}
@@ -101,7 +103,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
-              <span>Médecins ({doctors.length})</span>
+              <span>{t('map_doctors_filter')} ({doctors.length})</span>
             </button>
             <button
               onClick={() => { setFilterType('pharmacies'); setActiveItem(null); }}
@@ -110,7 +112,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
               }`}
             >
               <Pill className="w-3.5 h-3.5" />
-              <span>Pharmacies Garde ({KINSHASA_PHARMACIES_ON_DUTY.length})</span>
+              <span>{t('map_pharmacies_filter')} ({KINSHASA_PHARMACIES_ON_DUTY.length})</span>
             </button>
           </div>
 
@@ -157,7 +159,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
             }`}
           >
-            {comm === 'all' ? 'Toutes les communes' : comm}
+            {comm === 'all' ? t('map_communes_all') : comm}
           </button>
         ))}
       </div>
@@ -307,11 +309,11 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
         <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 text-[11px] text-slate-300 flex items-center space-x-3 shadow-lg pointer-events-none">
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
-            <span className="font-semibold">Médecins & Cabinets</span>
+            <span className="font-semibold">{t('map_doctors_filter')}</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-            <span className="font-semibold">Pharmacies Garde 24h</span>
+            <span className="font-semibold">{t('map_pharmacies_filter')}</span>
           </div>
         </div>
 
@@ -324,7 +326,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                   ? 'bg-blue-100 text-blue-800' 
                   : 'bg-emerald-100 text-emerald-800'
               }`}>
-                {activeItem.type === 'doctor' ? activeItem.data.specialty : 'Pharmacie de garde 24h'}
+                {activeItem.type === 'doctor' ? activeItem.data.specialty : t('map_on_duty_badge')}
               </span>
               <button 
                 onClick={() => setActiveItem(null)} 
@@ -348,7 +350,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                     <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold">
                       <Star className="w-3.5 h-3.5 fill-current" />
                       <span>{activeItem.data.rating}</span>
-                      <span className="text-slate-400 font-normal">({activeItem.data.reviewsCount} avis)</span>
+                      <span className="text-slate-400 font-normal">({activeItem.data.reviewsCount})</span>
                     </div>
                   </div>
                 </div>
@@ -369,7 +371,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/20 transition"
                 >
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Prendre Rendez-vous ({activeItem.data.fee})</span>
+                  <span>{t('book_appointment')} ({activeItem.data.fee})</span>
                 </button>
               </div>
             ) : (
@@ -397,7 +399,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow transition text-center"
                   >
                     <Phone className="w-3 h-3" />
-                    <span>Appeler</span>
+                    <span>{t('map_call')}</span>
                   </a>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeItem.data.name + ' ' + activeItem.data.address)}`}
@@ -406,7 +408,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                     className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition text-center"
                   >
                     <Navigation className="w-3 h-3" />
-                    <span>Itinéraire</span>
+                    <span>{t('map_directions')}</span>
                   </a>
                 </div>
               </div>

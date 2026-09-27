@@ -18,6 +18,7 @@ import {
 import { Appointment, Doctor, Prescription, DoctorScheduleDay, SaaSSubscriptionInvoice } from '../types';
 import VideoConsultationRoomModal from '../components/VideoConsultationRoomModal';
 import MobileMoneyBillingModal from './MobileMoneyBillingModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DoctorPortalProps {
   appointments: Appointment[];
@@ -32,6 +33,7 @@ export default function DoctorPortal({
   onSavePrescription,
   onUpdateSchedule
 }: DoctorPortalProps) {
+  const { t } = useLanguage();
   const currentDoctor = doctors[0] || {
     id: 1,
     name: "Dr. Marie Laurent",
@@ -134,7 +136,7 @@ export default function DoctorPortal({
           />
           <div>
             <span className="bg-blue-500/20 text-blue-300 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-              Espace Praticien &bull; Plan Pro Cabinet ($59/m)
+              {t('doc_portal_badge')} &bull; Plan Pro Cabinet ($59/m)
             </span>
             <h1 className="text-2xl font-black text-white mt-1 font-brand">{currentDoctor.name}</h1>
             <p className="text-xs text-slate-300">{currentDoctor.specialty} &bull; {currentDoctor.address}</p>
@@ -143,7 +145,7 @@ export default function DoctorPortal({
 
         <div className="flex items-center space-x-3">
           <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 text-center">
-            <span className="block text-[10px] text-blue-300 font-semibold uppercase">Consultations Prévues</span>
+            <span className="block text-[10px] text-blue-300 font-semibold uppercase">{t('tab_upcoming')}</span>
             <span className="text-2xl font-black text-white font-brand">{doctorAppointments.length}</span>
           </div>
 
@@ -152,7 +154,7 @@ export default function DoctorPortal({
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-3 rounded-2xl text-xs shadow-lg shadow-blue-600/30 transition flex items-center space-x-2"
           >
             <CreditCard className="w-4 h-4" />
-            <span>Régler Abonnement SaaS</span>
+            <span>{t('doc_tab_billing')}</span>
           </button>
         </div>
       </div>
@@ -168,7 +170,7 @@ export default function DoctorPortal({
           }`}
         >
           <CalendarIcon className="w-4 h-4" />
-          <span>Agenda & Consultations ({doctorAppointments.length})</span>
+          <span>{t('doc_tab_agenda')} ({doctorAppointments.length})</span>
         </button>
 
         <button 
@@ -180,7 +182,7 @@ export default function DoctorPortal({
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Disponibilités & Créneaux Horaires</span>
+          <span>{t('doc_tab_schedule')}</span>
         </button>
 
         <button 
@@ -192,7 +194,7 @@ export default function DoctorPortal({
           }`}
         >
           <Receipt className="w-4 h-4" />
-          <span>Facturation SaaS & Mobile Money</span>
+          <span>{t('doc_tab_billing')}</span>
         </button>
       </div>
 
@@ -201,16 +203,16 @@ export default function DoctorPortal({
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-black text-slate-900 font-brand">Agenda & Gestion des Consultations</h2>
-              <p className="text-xs text-slate-500">Vous pilotez directement vos appels de téléconsultation et vos dossiers patients</p>
+              <h2 className="text-xl font-black text-slate-900 font-brand">{t('doc_tab_agenda')}</h2>
+              <p className="text-xs text-slate-500">{t('doc_patient_queue')}</p>
             </div>
           </div>
 
           {doctorAppointments.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Aucune consultation programmée</h3>
-              <p className="text-sm text-slate-500">Votre agenda praticien est actuellement libre.</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">{t('doc_no_appointments')}</h3>
+              <p className="text-sm text-slate-500">{t('doc_schedule_desc')}</p>
             </div>
           ) : (
             <div className="space-y-4">

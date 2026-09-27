@@ -15,6 +15,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { Appointment, Prescription } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PharmacyPortalProps {
   appointments: Appointment[];
@@ -22,6 +23,7 @@ interface PharmacyPortalProps {
 }
 
 export default function PharmacyPortal({ appointments, onDispensePrescription }: PharmacyPortalProps) {
+  const { t } = useLanguage();
   const [searchToken, setSearchToken] = useState('');
   const [selectedPharmacy, setSelectedPharmacy] = useState('Pharmacie du Centre - Gombe');
   const [activePrescription, setActivePrescription] = useState<Prescription | null>(null);
@@ -83,15 +85,15 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
               </span>
               <span className="text-xs text-slate-300 font-medium">Kinshasa & Provinces</span>
             </div>
-            <h1 className="text-2xl font-black text-white mt-1 font-brand">Portail Validation Ordonnances SangO</h1>
-            <p className="text-xs text-slate-300">Vérification de l'authenticité et délivrance sécurisée des médicaments</p>
+            <h1 className="text-2xl font-black text-white mt-1 font-brand">{t('pharm_portal_title')}</h1>
+            <p className="text-xs text-slate-300">{t('pharm_portal_desc')}</p>
           </div>
         </div>
 
         {/* Selected Pharmacy Selector */}
         <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10">
           <label className="block text-[10px] text-emerald-300 font-bold uppercase tracking-wider mb-1">
-            Pharmacie Active
+            {t('nav_pharmacy_portal')}
           </label>
           <select 
             value={selectedPharmacy}
@@ -108,9 +110,9 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
 
       {/* Search and Scan Bar */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-8">
-        <h2 className="text-lg font-black text-slate-900 font-brand mb-2">Vérifier une Ordonnance</h2>
+        <h2 className="text-lg font-black text-slate-900 font-brand mb-2">{t('pharm_portal_title')}</h2>
         <p className="text-xs text-slate-500 mb-4">
-          Saisissez le numéro d'ordonnance (ex: <code className="bg-slate-100 text-blue-700 px-1.5 py-0.5 rounded font-mono font-bold">ORD-942810</code>) ou le jeton de sécurité du QR Code présenté par le patient.
+          {t('pharm_portal_desc')}
         </p>
 
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
@@ -120,7 +122,7 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
               type="text"
               value={searchToken}
               onChange={(e) => setSearchToken(e.target.value)}
-              placeholder="Ex: ORD-942810 ou nom du patient..."
+              placeholder={t('pharm_scan_input')}
               className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
             />
           </div>
@@ -129,13 +131,13 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
             className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-2xl text-xs shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2"
           >
             <QrCode className="w-4 h-4" />
-            <span>Valider l'Ordonnance</span>
+            <span>{t('pharm_search_btn')}</span>
           </button>
         </form>
 
         {/* Quick click suggestions */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center space-x-2 text-xs">
-          <span className="text-slate-400">Ordonnances récentes dans le système :</span>
+          <span className="text-slate-400">Ordonnances récentes :</span>
           {allPrescriptions.slice(0, 3).map(p => (
             <button
               key={p.id}
@@ -168,20 +170,20 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
                 {activePrescription.isDispensed ? (
                   <span className="text-xs font-bold bg-amber-50 text-amber-800 px-3 py-1 rounded-lg flex items-center space-x-1">
                     <PackageCheck className="w-4 h-4 text-amber-600" />
-                    <span>DÉJÀ DÉLIVRÉE</span>
+                    <span>{t('pharm_dispensed_badge')}</span>
                   </span>
                 ) : (
                   <span className="text-xs font-bold bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg flex items-center space-x-1">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>VALIDE POUR DÉLIVRANCE</span>
+                    <span>{t('pharm_valid_rx')}</span>
                   </span>
                 )}
               </div>
               <h3 className="text-2xl font-black text-slate-900 font-brand mt-2">
-                Patient(e) : {activePrescription.patientName}
+                {t('pharm_patient_name')} : {activePrescription.patientName}
               </h3>
               <p className="text-xs text-slate-500">
-                Prescrit par : <strong className="text-slate-800">{activePrescription.doctorName}</strong> &bull; Date d'émission : {activePrescription.date}
+                {t('pharm_prescriber')} : <strong className="text-slate-800">{activePrescription.doctorName}</strong> &bull; Date : {activePrescription.date}
               </p>
             </div>
 
@@ -198,7 +200,7 @@ export default function PharmacyPortal({ appointments, onDispensePrescription }:
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-2xl text-xs shadow-lg shadow-emerald-600/20 transition flex items-center space-x-2"
                 >
                   <PackageCheck className="w-4 h-4" />
-                  <span>Délivrer et marquer comme servie</span>
+                  <span>{t('pharm_dispense_btn')}</span>
                 </button>
               )}
             </div>
