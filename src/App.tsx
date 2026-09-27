@@ -333,8 +333,15 @@ export default function SangoHealthApp() {
           <DoctorPortal 
             appointments={appointments} 
             doctors={doctors} 
+            currentUser={currentUser}
             onSavePrescription={handleSavePrescription}
             onUpdateSchedule={handleUpdateDoctorSchedule}
+            onUpdateStatus={async (id, status) => {
+              setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+              await dataService.updateAppointmentStatus(id, status);
+              showNotification(`Statut consultation mis à jour : ${status}`, 'success');
+            }}
+            onCancelAppointment={cancelAppointment}
           />
         )}
 
