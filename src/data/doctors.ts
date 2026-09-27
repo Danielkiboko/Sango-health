@@ -44,7 +44,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     reviewsCount: 210,
     fee: "35 000 CDF",
     nextSlot: "Aujourd'hui à 16:00",
-    image: "https://images.unsplash.com/photo-1594824813587-75c13e4b4792?auto=format&fit=crop&q=80&w=300",
+    image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet & Vidéo",
     bio: "Pédiatre passionnée par le développement de l'enfant et la néonatalogie. Accueil chaleureux des nourrissons.",
     slots: ["13:00", "14:00", "16:00", "16:45"]

@@ -46,7 +46,16 @@ export const translations = {
     spec_cardiologist: "Cardiologue",
     spec_pediatrician: "Pédiatre",
     spec_dentist: "Dentiste",
+    spec_gynecologist: "Gynécologue",
+    spec_ophthalmologist: "Ophtalmologue",
     practitioners: "praticiens",
+    featured_doctors_title: "Praticiens disponibles",
+    featured_doctors_subtitle: "Réservez un créneau dès aujourd'hui",
+    reviews_count: "avis",
+    today_at: "Aujourd'hui à",
+    tomorrow_at: "Demain à",
+    wednesday_at: "Mercredi à",
+    thursday_at: "Jeudi à",
 
     // Features Section
     features_title: "Pourquoi choisir SangO Health ?",
@@ -240,7 +249,16 @@ export const translations = {
     spec_cardiologist: "Cardiologist",
     spec_pediatrician: "Pediatrician",
     spec_dentist: "Dentist",
+    spec_gynecologist: "Gynecologist",
+    spec_ophthalmologist: "Ophthalmologist",
     practitioners: "practitioners",
+    featured_doctors_title: "Available Practitioners",
+    featured_doctors_subtitle: "Book an appointment slot today",
+    reviews_count: "reviews",
+    today_at: "Today at",
+    tomorrow_at: "Tomorrow at",
+    wednesday_at: "Wednesday at",
+    thursday_at: "Thursday at",
 
     // Features Section
     features_title: "Why choose SangO Health?",
@@ -434,7 +452,16 @@ export const translations = {
     spec_cardiologist: "Monganga ya motema",
     spec_pediatrician: "Monganga ya bana mike",
     spec_dentist: "Monganga ya mino",
+    spec_gynecologist: "Monganga ya basi",
+    spec_ophthalmologist: "Monganga ya miso",
     practitioners: "minganga",
+    featured_doctors_title: "Baminganga oyo bazali",
+    featured_doctors_subtitle: "Kanga ngonga ya lisalisi lelo oyo",
+    reviews_count: "makanisi",
+    today_at: "Lelo na",
+    tomorrow_at: "Lobi na",
+    wednesday_at: "Mokolo ya misato na",
+    thursday_at: "Mokolo ya minei na",
 
     // Features Section
     features_title: "Mpo na nini kopona SangO Health ?",
@@ -628,7 +655,16 @@ export const translations = {
     spec_cardiologist: "Daktari wa Moyo",
     spec_pediatrician: "Daktari wa Watoto",
     spec_dentist: "Daktari wa Meno",
+    spec_gynecologist: "Daktari wa Wanawake",
+    spec_ophthalmologist: "Daktari wa Macho",
     practitioners: "madaktari",
+    featured_doctors_title: "Madaktari waliopo",
+    featured_doctors_subtitle: "Weka miadi yako kuanzia leo",
+    reviews_count: "maoni",
+    today_at: "Leo saa",
+    tomorrow_at: "Kesho saa",
+    wednesday_at: "Jumatano saa",
+    thursday_at: "Alhamisi saa",
 
     // Features Section
     features_title: "Kwa nini uchague SangO Health?",
@@ -822,7 +858,16 @@ export const translations = {
     spec_cardiologist: "Munganga ya ntima",
     spec_pediatrician: "Munganga ya bana fioti",
     spec_dentist: "Munganga ya meno",
+    spec_gynecologist: "Munganga ya bankento",
+    spec_ophthalmologist: "Munganga ya meso",
     practitioners: "baminganga",
+    featured_doctors_title: "Baminganga yina kele",
+    featured_doctors_subtitle: "Baka ngonga ya kusolula bubu yai",
+    reviews_count: "makanisi",
+    today_at: "Bubu na",
+    tomorrow_at: "Mbwela na",
+    wednesday_at: "Kilumbu ya tatu na",
+    thursday_at: "Kilumbu ya iya na",
 
     // Features Section
     features_title: "Samu na nki kupona SangO Health ?",
@@ -1016,7 +1061,16 @@ export const translations = {
     spec_cardiologist: "Munganga wa muoyo",
     spec_pediatrician: "Munganga wa bana bakese",
     spec_dentist: "Munganga wa menu",
+    spec_gynecologist: "Munganga wa bakaji",
+    spec_ophthalmologist: "Munganga wa mesu",
     practitioners: "baminganga",
+    featured_doctors_title: "Baminganga badi pabuipi",
+    featured_doctors_subtitle: "Angata tshikondo lelu",
+    reviews_count: "makanisi",
+    today_at: "Lelu mu",
+    tomorrow_at: "Malaba mu",
+    wednesday_at: "Dituku dia bisatu mu",
+    thursday_at: "Dituku dia binayi mu",
 
     // Features Section
     features_title: "Bua tshinyi kusungula SangO Health ?",
@@ -1182,3 +1236,24 @@ export const translations = {
     footer_rights: "Mikenji yonso mmilama. Tshiamu tshia sika tshia makanda mu RDC."
   }
 };
+
+export function formatSpecialty(specialty: string, t: (key: string) => string): string {
+  switch (specialty) {
+    case 'Généraliste': return t('spec_generalist');
+    case 'Cardiologue': return t('spec_cardiologist');
+    case 'Pédiatre': return t('spec_pediatrician');
+    case 'Dentiste': return t('spec_dentist');
+    case 'Gynécologue': return t('spec_gynecologist');
+    case 'Ophtalmologue': return t('spec_ophthalmologist');
+    default: return specialty;
+  }
+}
+
+export function formatNextSlot(slot: string, t: (key: string) => string): string {
+  if (!slot) return slot;
+  return slot
+    .replace(/^Aujourd'hui à\s*/, `${t('today_at')} `)
+    .replace(/^Demain à\s*/, `${t('tomorrow_at')} `)
+    .replace(/^Mercredi à\s*/, `${t('wednesday_at')} `)
+    .replace(/^Jeudi à\s*/, `${t('thursday_at')} `);
+}

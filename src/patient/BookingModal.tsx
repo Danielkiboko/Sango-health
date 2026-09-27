@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Building2, Video, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Doctor } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { formatSpecialty } from '../lib/i18n';
 
 interface BookingModalProps {
   doctor: Doctor;
@@ -35,7 +36,7 @@ export default function BookingModal({ doctor, onClose, onConfirmBooking }: Book
         <div className="flex items-center space-x-4 pb-6 border-b border-slate-100">
           <img src={doctor.image} alt={doctor.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-sm" />
           <div>
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{doctor.specialty}</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{formatSpecialty(doctor.specialty, t)}</span>
             <h2 className="text-xl font-black text-slate-900 font-brand">{doctor.name}</h2>
             <p className="text-xs text-slate-500">{doctor.address}</p>
           </div>

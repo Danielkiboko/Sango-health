@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Doctor } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { formatSpecialty, formatNextSlot } from '../lib/i18n';
 
 interface HomeViewProps {
   searchSpecialty: string;
@@ -180,8 +181,8 @@ export default function HomeView({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="font-brand text-2xl font-black text-slate-900 tracking-tight">Praticiens disponibles</h2>
-              <p className="text-sm text-slate-500">Réservez un créneau dès aujourd'hui</p>
+              <h2 className="font-brand text-2xl font-black text-slate-900 tracking-tight">{t('featured_doctors_title')}</h2>
+              <p className="text-sm text-slate-500">{t('featured_doctors_subtitle')}</p>
             </div>
             <button onClick={onNavigateSearch} className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center space-x-1">
               <span>{t('see_all')}</span>
@@ -208,10 +209,10 @@ export default function HomeView({
                     <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold mb-1">
                       <Star className="w-3.5 h-3.5 fill-current" />
                       <span>{doc.rating}</span>
-                      <span className="text-slate-400 font-normal">({doc.reviewsCount} avis)</span>
+                      <span className="text-slate-400 font-normal">({doc.reviewsCount} {t('reviews_count')})</span>
                     </div>
                     <h3 className="font-bold text-slate-900 text-lg mb-0.5">{doc.name}</h3>
-                    <p className="text-blue-600 font-semibold text-xs mb-3">{doc.specialty}</p>
+                    <p className="text-blue-600 font-semibold text-xs mb-3">{formatSpecialty(doc.specialty, t)}</p>
                     <div className="flex items-start space-x-2 text-slate-500 text-xs mb-4">
                       <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
                       <span className="line-clamp-2">{doc.address}</span>
@@ -221,7 +222,7 @@ export default function HomeView({
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <div>
                       <span className="block text-[10px] text-slate-400 uppercase font-bold">{t('next_slot')}</span>
-                      <span className="text-xs font-bold text-emerald-600">{doc.nextSlot}</span>
+                      <span className="text-xs font-bold text-emerald-600">{formatNextSlot(doc.nextSlot, t)}</span>
                     </div>
                     <button 
                       onClick={() => onSelectDoctor(doc)}

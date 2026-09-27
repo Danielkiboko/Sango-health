@@ -17,6 +17,7 @@ import {
 import { Doctor, PharmacyOnDuty } from '../types';
 import { KINSHASA_PHARMACIES_ON_DUTY } from '../data/pharmacies';
 import { useLanguage } from '../context/LanguageContext';
+import { formatSpecialty, formatNextSlot } from '../lib/i18n';
 
 interface KinshasaInteractiveMapProps {
   doctors: Doctor[];
@@ -251,7 +252,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                       ? 'bg-blue-600 text-white ring-2 ring-white' 
                       : 'bg-slate-900/90 text-blue-200 border border-slate-700 opacity-90 group-hover:opacity-100'
                   }`}>
-                    {doc.name.split(' ')[0]} {doc.name.split(' ')[1] || ''} ({doc.specialty})
+                    {doc.name.split(' ')[0]} {doc.name.split(' ')[1] || ''} ({formatSpecialty(doc.specialty, t)})
                   </div>
 
                   {/* Pin Médecin */}
@@ -347,10 +348,11 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                   />
                   <div>
                     <h4 className="font-bold text-sm text-slate-900 leading-snug">{activeItem.data.name}</h4>
+                    <p className="text-xs text-blue-600 font-semibold mb-0.5">{formatSpecialty(activeItem.data.specialty, t)}</p>
                     <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold">
                       <Star className="w-3.5 h-3.5 fill-current" />
                       <span>{activeItem.data.rating}</span>
-                      <span className="text-slate-400 font-normal">({activeItem.data.reviewsCount})</span>
+                      <span className="text-slate-400 font-normal">({activeItem.data.reviewsCount} {t('reviews_count')})</span>
                     </div>
                   </div>
                 </div>
@@ -362,7 +364,7 @@ export default function KinshasaInteractiveMap({ doctors, onSelectDoctor }: Kins
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span className="font-semibold text-slate-700">{activeItem.data.nextSlot}</span>
+                    <span className="font-semibold text-slate-700">{formatNextSlot(activeItem.data.nextSlot, t)}</span>
                   </div>
                 </div>
 

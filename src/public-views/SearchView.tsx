@@ -3,6 +3,7 @@ import { ArrowLeft, Building2, Video, AlertCircle, Star, MapPin, Map, List } fro
 import { Doctor } from '../types';
 import KinshasaInteractiveMap from '../components/KinshasaInteractiveMap';
 import { useLanguage } from '../context/LanguageContext';
+import { formatSpecialty, formatNextSlot } from '../lib/i18n';
 
 interface SearchViewProps {
   doctors: Doctor[];
@@ -114,8 +115,8 @@ export default function SearchView({
                 <option value="Cardiologue">{t('spec_cardiologist')}</option>
                 <option value="Pédiatre">{t('spec_pediatrician')}</option>
                 <option value="Dentiste">{t('spec_dentist')}</option>
-                <option value="Gynécologue">Gynécologue</option>
-                <option value="Ophtalmologue">Ophtalmologue</option>
+                <option value="Gynécologue">{t('spec_gynecologist')}</option>
+                <option value="Ophtalmologue">{t('spec_ophthalmologist')}</option>
               </select>
             </div>
 
@@ -173,7 +174,7 @@ export default function SearchView({
                     <img src={doc.image} alt={doc.name} className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-500/20 shadow" />
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{doc.specialty}</span>
+                        <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{formatSpecialty(doc.specialty, t)}</span>
                         {doc.commune && (
                           <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
                             {doc.commune}
@@ -182,7 +183,7 @@ export default function SearchView({
                         <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold">
                           <Star className="w-3.5 h-3.5 fill-current" />
                           <span>{doc.rating}</span>
-                          <span className="text-slate-400 font-normal">({doc.reviewsCount})</span>
+                          <span className="text-slate-400 font-normal">({doc.reviewsCount} {t('reviews_count')})</span>
                         </div>
                       </div>
                       <h3 className="text-xl font-bold text-slate-900 mb-1">{doc.name}</h3>
@@ -202,7 +203,7 @@ export default function SearchView({
                   <div className="flex flex-col sm:flex-row md:flex-col items-end gap-3 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <div className="text-left md:text-right w-full sm:w-auto">
                       <span className="block text-[10px] text-slate-400 uppercase font-bold">{t('next_slot')}</span>
-                      <span className="text-xs font-bold text-emerald-600">{doc.nextSlot}</span>
+                      <span className="text-xs font-bold text-emerald-600">{formatNextSlot(doc.nextSlot, t)}</span>
                     </div>
                     <button 
                       onClick={() => onSelectDoctor(doc)}
