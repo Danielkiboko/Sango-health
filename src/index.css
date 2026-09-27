@@ -24,3 +24,16 @@
     letter-spacing: -0.02em;
   }
 }
+
+@media print {
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .modal-backdrop {
+    background: transparent !important;
+  }
+}

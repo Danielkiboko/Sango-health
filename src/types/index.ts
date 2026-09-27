@@ -28,6 +28,8 @@ export interface Doctor {
   bio: string;
   slots: string[];
   schedule?: DoctorScheduleDay[];
+  commune?: string;
+  coordinates?: { lat: number; lng: number };
 }
 
 export interface Prescription {
@@ -106,3 +108,29 @@ export interface SuperAdminUser {
   lastLogin?: string;
 }
 
+export interface PharmacyOnDuty {
+  id: number;
+  name: string;
+  commune: string;
+  address: string;
+  phone: string;
+  isOnDuty: boolean;
+  hours: string;
+  distanceKm: number;
+  isOpenNow: boolean;
+  coordinates: { lat: number; lng: number };
+}
+
+export interface MedicalDocument {
+  id: string;
+  title: string;
+  category: 'Biologie & Analyses' | 'Imagerie & Radio' | 'Échographie' | 'Compte-rendu' | 'Ordonnance antérieure';
+  date: string;
+  facility: string;
+  fileType: 'pdf' | 'image' | 'scan';
+  fileUrl?: string;
+  fileSize: string;
+  notes?: string;
+  isSharedWithDoctor: boolean;
+  uploadedAt: string;
+}
