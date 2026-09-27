@@ -23,9 +23,21 @@ import {
   Send,
   UserCheck,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  HeartPulse,
+  User,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Settings,
+  Home,
+  FileText,
+  Pill,
+  Clock,
+  Menu
 } from 'lucide-react';
-import { Doctor, SaaSDoctorAccount, SuperAdminUser } from '../types';
+import { Doctor, SaaSDoctorAccount, SuperAdminUser, Appointment } from '../types';
 import { INITIAL_SAAS_ACCOUNTS } from '../data/saasAccounts';
 import { dataService } from '../lib/dataService';
 import SetPasswordModal from '../components/SetPasswordModal';
@@ -33,13 +45,27 @@ import { useLanguage } from '../context/LanguageContext';
 
 interface SaaSControlPanelProps {
   doctors: Doctor[];
+  appointments?: Appointment[];
   onAddDoctor: (newDoctor: Doctor) => void;
   onUpdateDoctorStatus: (id: number, status: 'Actif' | 'Suspendu') => void;
+  onReturnHome?: () => void;
+  currentUser?: { name: string; email: string; role: string; uid?: string } | null;
 }
 
-export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: SaaSControlPanelProps) {
+export default function SaaSControlPanel({ 
+  doctors, 
+  appointments = [], 
+  onAddDoctor, 
+  onUpdateDoctorStatus,
+  onReturnHome,
+  currentUser
+}: SaaSControlPanelProps) {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'billing' | 'infrastructure' | 'admins'>('overview');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'messages' | 'overview' | 'doctors' | 'teleconsultation' | 'billing' | 'admins'>('overview');
+  const [isMoreOpen, setIsMoreOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [appointmentSearch, setAppointmentSearch] = useState('');
+  const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('all');
   const [accounts, setAccounts] = useState<SaaSDoctorAccount[]>(INITIAL_SAAS_ACCOUNTS);
   const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -52,6 +78,9 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
 
   useEffect(() => {
     dataService.getSuperAdmins().then(setSuperAdmins);
+    dataService.getSaaSAccounts().then(accs => {
+      if (accs && accs.length > 0) setAccounts(accs);
+    });
   }, []);
 
   const handleSendInvite = async (email: string) => {
@@ -115,6 +144,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
     };
 
     setAccounts([newAccount, ...accounts]);
+    dataService.addSaaSAccount(newAccount);
 
     // Push into public doctors list
     onAddDoctor({
@@ -139,15 +169,13 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
     setIsAddModalOpen(false);
   };
 
-  const toggleStatus = (id: number) => {
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === id) {
-        const nextStatus = acc.status === 'Actif' ? 'Suspendu' : 'Actif';
-        onUpdateDoctorStatus(id, nextStatus);
-        return { ...acc, status: nextStatus };
-      }
-      return acc;
-    }));
+  const toggleStatus = async (id: number) => {
+    const acc = accounts.find(a => a.id === id);
+    if (!acc) return;
+    const nextStatus = acc.status === 'Actif' ? 'Suspendu' : 'Actif';
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, status: nextStatus } : a));
+    onUpdateDoctorStatus(id, nextStatus);
+    await dataService.updateSaaSAccountStatus(id, nextStatus);
   };
 
   const filteredAccounts = accounts.filter(acc => {
@@ -158,23 +186,219 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
     return matchPlan && matchQuery;
   });
 
+  const filteredAppointments = appointments.filter(app => {
+    const matchesStatus = appointmentStatusFilter === 'all' || app.status === appointmentStatusFilter;
+    const matchesQuery = appointmentSearch === '' || 
+      app.patientName.toLowerCase().includes(appointmentSearch.toLowerCase()) ||
+      app.doctorName.toLowerCase().includes(appointmentSearch.toLowerCase()) ||
+      app.specialty.toLowerCase().includes(appointmentSearch.toLowerCase());
+    return matchesStatus && matchesQuery;
+  });
+
   return (
-    <div className="bg-slate-900 text-slate-100 min-h-screen pb-16">
-      {/* Top Banner / SaaS Admin Header */}
-      <div className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
-              <Activity className="w-5 h-5" />
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row font-sans">
+      {/* ── SIDEBAR (Style exact de la photo Amana Health -> SangO Health) ── */}
+      <aside className={`w-full md:w-64 bg-[#0a1128] border-r border-slate-800/80 flex flex-col shrink-0 ${isMobileMenuOpen ? 'block' : 'hidden md:flex'}`}>
+        
+        {/* Brand Header */}
+        <div className="p-5 pb-6 flex items-center justify-between">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={onReturnHome}>
+            <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-sm shadow-blue-500/20">
+              <Stethoscope className="w-6 h-6 text-blue-400 stroke-[2.5]" />
             </div>
             <div>
+              <span className="text-lg font-black text-white font-brand tracking-tight">SangO Health</span>
+              <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Control Panel SaaS</div>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden text-slate-400 hover:text-white p-1"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto">
+          {/* Appointments */}
+          <button
+            onClick={() => { setActiveTab('appointments'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'appointments'
+                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <Calendar className={`w-5 h-5 ${activeTab === 'appointments' ? 'text-white' : 'text-slate-400'}`} />
+            <span>Appointments</span>
+            {appointments && appointments.length > 0 && (
+              <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
+                {appointments.length}
+              </span>
+            )}
+          </button>
+
+          {/* Messages */}
+          <button
+            onClick={() => { setActiveTab('messages'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'messages'
+                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <MessageSquare className={`w-5 h-5 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400'}`} />
+            <span>Messages</span>
+            <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </button>
+
+          {/* Health (active in photo) */}
+          <button
+            onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'overview'
+                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <HeartPulse className={`w-5 h-5 ${activeTab === 'overview' ? 'text-white' : 'text-slate-400'}`} />
+            <span>Health</span>
+          </button>
+
+          {/* Account */}
+          <button
+            onClick={() => { setActiveTab('doctors'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'doctors'
+                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <User className={`w-5 h-5 ${activeTab === 'doctors' ? 'text-white' : 'text-slate-400'}`} />
+            <span>Account</span>
+            <span className="ml-auto text-[10px] text-slate-400 font-mono">
+              ({accounts.length})
+            </span>
+          </button>
+
+          {/* More with Dropdown */}
+          <div className="pt-1">
+            <button
+              onClick={() => setIsMoreOpen(!isMoreOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition"
+            >
+              <div className="flex items-center space-x-3.5">
+                <MoreHorizontal className="w-5 h-5 text-slate-400" />
+                <span>More</span>
+              </div>
+              {isMoreOpen ? (
+                <ChevronUp className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+
+            {isMoreOpen && (
+              <div className="ml-4 pl-3 border-l border-slate-800/80 space-y-1 mt-1">
+                <button
+                  onClick={() => { setActiveTab('teleconsultation'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    activeTab === 'teleconsultation'
+                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                  }`}
+                >
+                  <Video className="w-4 h-4 text-blue-400" />
+                  <span>Teleconsultation</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('billing'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    activeTab === 'billing'
+                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-emerald-400" />
+                  <span>Billing</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('admins'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    activeTab === 'admins'
+                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-purple-400" />
+                  <span>Settings</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Sidebar Footer with Super Admin identity */}
+        <div className="p-4 border-t border-slate-800/80 space-y-3">
+          <div className="flex items-center space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+              {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('') : 'DK'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-white truncate">
+                {currentUser?.name || 'KIBOKO Daniel'}
+              </div>
+              <div className="text-[10px] text-emerald-400 flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Super Admin • RLS Sécurisé</span>
+              </div>
+            </div>
+          </div>
+
+          {onReturnHome && (
+            <button
+              onClick={onReturnHome}
+              className="w-full flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 transition"
+            >
+              <Home className="w-3.5 h-3.5 text-blue-400" />
+              <span>Retour au site public</span>
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+        {/* Top Header / Bar */}
+        <header className="border-b border-slate-800 bg-slate-950/70 backdrop-blur-md sticky top-0 z-20 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
                   Control Panel SaaS
                 </span>
-                <span className="text-xs text-slate-400">Supervision Business B2B</span>
+                <span className="text-xs text-slate-400 hidden sm:inline">
+                  {activeTab === 'appointments' && 'Gestion de l\'agenda & rendez-vous du réseau'}
+                  {activeTab === 'messages' && 'Communications & alertes réseau'}
+                  {activeTab === 'overview' && 'Supervision & indicateurs de santé'}
+                  {activeTab === 'doctors' && 'Gestion des praticiens & établissements'}
+                  {activeTab === 'teleconsultation' && 'Infrastructure visio WebRTC/LiveKit'}
+                  {activeTab === 'billing' && 'Encaissements Mobile Money & plans SaaS'}
+                  {activeTab === 'admins' && 'Super Administrateurs & sécurité RLS'}
+                </span>
               </div>
-              <h1 className="text-xl font-black text-white font-brand">{t('cpanel_title')}</h1>
+              <h1 className="text-lg sm:text-xl font-black text-white font-brand capitalize">
+                {activeTab === 'overview' ? 'Health' : activeTab === 'doctors' ? 'Account' : activeTab === 'teleconsultation' ? 'Teleconsultation' : activeTab === 'admins' ? 'Settings' : activeTab}
+              </h1>
             </div>
           </div>
 
@@ -184,75 +408,253 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center space-x-2"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>{t('cpanel_add_doctor')}</span>
+              <span className="hidden sm:inline">{t('cpanel_add_doctor')}</span>
+              <span className="sm:hidden">Nouveau</span>
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Tab navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 text-xs font-bold border-t border-slate-800/60 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
-              activeTab === 'overview'
-                ? 'border-blue-400 text-blue-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>{t('cpanel_tab_overview')}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('doctors')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
-              activeTab === 'doctors'
-                ? 'border-blue-400 text-blue-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Stethoscope className="w-4 h-4" />
-            <span>{t('cpanel_tab_doctors')} ({accounts.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
-              activeTab === 'billing'
-                ? 'border-blue-400 text-blue-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>{t('cpanel_tab_billing')}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('infrastructure')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
-              activeTab === 'infrastructure'
-                ? 'border-blue-400 text-blue-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Video className="w-4 h-4" />
-            <span>{t('cpanel_tab_infra')}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('admins')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition ${
-              activeTab === 'admins'
-                ? 'border-blue-400 text-blue-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>{t('cpanel_tab_admins')} ({superAdmins.length || 2})</span>
-          </button>
-        </div>
-      </div>
+        {/* Content Container */}
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+          {/* APPOINTMENTS TAB */}
+          {activeTab === 'appointments' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                <div className="flex items-center space-x-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Chercher patient, médecin, spécialité..."
+                      value={appointmentSearch}
+                      onChange={(e) => setAppointmentSearch(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <select
+                    value={appointmentStatusFilter}
+                    onChange={(e) => setAppointmentStatusFilter(e.target.value)}
+                    className="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="Confirmé">Confirmé</option>
+                    <option value="Terminé">Terminé</option>
+                    <option value="Annulé">Annulé</option>
+                  </select>
+                </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {/* OVERVIEW TAB */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8">
+                <div className="text-xs text-slate-400">
+                  Total synchronisé Supabase : <strong className="text-white">{filteredAppointments.length}</strong> rendez-vous
+                </div>
+              </div>
+
+              {/* Appointments Table */}
+              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-900/90 uppercase text-[10px] text-slate-400 tracking-wider border-b border-slate-700">
+                      <tr>
+                        <th className="py-3.5 px-4">Patient</th>
+                        <th className="py-3.5 px-4">Praticien Assigné</th>
+                        <th className="py-3.5 px-4">Date & Heure</th>
+                        <th className="py-3.5 px-4">Mode</th>
+                        <th className="py-3.5 px-4">Ordonnance</th>
+                        <th className="py-3.5 px-4">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/60 font-medium">
+                      {filteredAppointments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            Aucun rendez-vous trouvé dans la base de données.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredAppointments.map(app => (
+                          <tr key={app.id} className="hover:bg-slate-700/30 transition">
+                            <td className="py-4 px-4 font-bold text-white">
+                              {app.patientName}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="font-semibold text-slate-200">{app.doctorName}</div>
+                              <div className="text-[10px] text-blue-400">{app.specialty}</div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div>{app.date}</div>
+                              <div className="text-[10px] text-slate-400">{app.time}</div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="bg-slate-700 px-2 py-0.5 rounded-md text-[11px] text-slate-200">
+                                {app.type}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              {app.prescription ? (
+                                <span className="text-[11px] text-emerald-400 font-bold flex items-center space-x-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>{app.prescription.id}</span>
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 text-[11px]">—</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                app.status === 'Confirmé'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : app.status === 'Annulé'
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              }`}>
+                                {app.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MESSAGES TAB */}
+          {activeTab === 'messages' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-700 mb-6">
+                  <div>
+                    <h3 className="text-base font-bold text-white font-brand">Centre de Notifications & Communications</h3>
+                    <p className="text-xs text-slate-400">Rappels SMS de consultations et alertes du système SangO Health</p>
+                  </div>
+                  <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full">
+                    Passerelle SMS RDC Active
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/60 flex items-start space-x-4">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-white">Confirmation de rendez-vous automatique transmise</h4>
+                        <span className="text-[10px] text-slate-400">Il y a 5 min</span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">
+                        SMS envoyé au patient (+243 81 000 0000) pour sa consultation avec le Dr. Marie Laurent.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/60 flex items-start space-x-4">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-white">Encaissement M-Pesa validé avec succès</h4>
+                        <span className="text-[10px] text-slate-400">Il y a 22 min</span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Transaction RDC-PAY-88492 confirmée (59 USD). Abonnement "Pro Cabinet" actif pour le Cabinet Médical des Martyrs.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/60 flex items-start space-x-4">
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-white">Politiques de sécurité RLS Supabase vérifiées</h4>
+                        <span className="text-[10px] text-slate-400">Aujourd'hui</span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Cloisonnement strict actif pour les Super Administrateurs (danielkiboko218@gmail.com & kibongef15@gmail.com).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERVIEW / HEALTH TAB */}
+          {activeTab === 'overview' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              {/* Health Reminders & Health Profile section matching user's photo */}
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+                    Health reminders
+                  </h2>
+                  <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 sm:p-5 flex items-center space-x-4 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">You're up to date</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        We'll notify you when you have new health reminders. Tous les services cliniques et serveurs fonctionnent normalement.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+                    Health profile
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Documents */}
+                    <div 
+                      onClick={() => setActiveTab('appointments')}
+                      className="bg-slate-800/80 border border-slate-700/80 hover:border-blue-500/50 rounded-2xl p-4 flex items-center space-x-3.5 transition group cursor-pointer"
+                    >
+                      <div className="w-11 h-11 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-white group-hover:text-blue-300 transition">Documents</h4>
+                        <p className="text-xs text-slate-400">Analyses, bilans & dossiers médicaux</p>
+                      </div>
+                    </div>
+
+                    {/* Medical conditions */}
+                    <div 
+                      onClick={() => setActiveTab('doctors')}
+                      className="bg-slate-800/80 border border-slate-700/80 hover:border-rose-500/50 rounded-2xl p-4 flex items-center space-x-3.5 transition group cursor-pointer"
+                    >
+                      <div className="w-11 h-11 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                        <HeartPulse className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-white group-hover:text-rose-300 transition">Medical conditions</h4>
+                        <p className="text-xs text-slate-400">Pathologies surveillées & spécialités</p>
+                      </div>
+                    </div>
+
+                    {/* Medications */}
+                    <div 
+                      onClick={() => setActiveTab('billing')}
+                      className="bg-slate-800/80 border border-slate-700/80 hover:border-purple-500/50 rounded-2xl p-4 flex items-center space-x-3.5 transition group cursor-pointer"
+                    >
+                      <div className="w-11 h-11 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                        <Pill className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-white group-hover:text-purple-300 transition">Medications</h4>
+                        <p className="text-xs text-slate-400">Prescriptions & ordonnances</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             {/* Top KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* MRR */}
@@ -677,7 +1079,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
         )}
 
         {/* INFRASTRUCTURE & VIDEO USAGE TAB */}
-        {activeTab === 'infrastructure' && (
+        {(activeTab === 'teleconsultation' || (activeTab as any) === 'infrastructure') && (
           <div className="space-y-6">
             <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
@@ -881,6 +1283,7 @@ export default function SaaSControlPanel({ onAddDoctor, onUpdateDoctorStatus }: 
             </div>
           </div>
         )}
+        </main>
       </div>
 
       {/* MODAL: DEFINIR MOT DE PASSE SUPER ADMIN */}

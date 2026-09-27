@@ -4,6 +4,7 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   email: string;
+  uid?: string; // UUID Supabase Auth (auth.uid()) — utilisé pour les RLS
 }
 
 export interface DoctorScheduleDay {
@@ -49,6 +50,7 @@ export interface Prescription {
   isDispensed?: boolean;
   dispensedAt?: string;
   dispensedByPharmacy?: string;
+  appointmentId?: number;
 }
 
 export interface Appointment {

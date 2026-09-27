@@ -11,7 +11,7 @@ export const dataService = {
       return INITIAL_DOCTORS;
     }
     try {
-      const { data, error } = await supabase.from('doctors').select('*');
+      const { data, error } = await supabase.from('doctors').select('*').order('id');
       if (error || !data || data.length === 0) return INITIAL_DOCTORS;
       return data.map((d: any) => ({
         id: d.id,
@@ -25,8 +25,10 @@ export const dataService = {
         image: d.image || '',
         consultationType: d.consultation_type || 'Cabinet & Vidéo',
         bio: d.bio || '',
-        slots: d.slots || [],
-        schedule: d.schedule || []
+        slots: d.slots || ["09:00", "10:30", "14:00", "15:30"],
+        schedule: d.schedule || [],
+        commune: d.commune || 'Gombe',
+        coordinates: d.coordinates || undefined
       }));
     } catch {
       return INITIAL_DOCTORS;
@@ -44,7 +46,13 @@ export const dataService = {
         image: doctor.image,
         bio: doctor.bio,
         slots: doctor.slots,
-        schedule: doctor.schedule || []
+        schedule: doctor.schedule || [],
+        commune: doctor.commune || 'Gombe',
+        coordinates: doctor.coordinates || null,
+        consultation_type: doctor.consultationType || 'Cabinet & Vidéo',
+        rating: doctor.rating || 5.0,
+        reviews_count: doctor.reviewsCount || 0,
+        next_slot: doctor.nextSlot || 'Disponible'
       }]);
     } catch (e) {
       console.warn("Could not insert doctor to Supabase:", e);
@@ -57,37 +65,74 @@ export const dataService = {
       return INITIAL_APPOINTMENTS;
     }
     try {
-      const { data, error } = await supabase.from('appointments').select('*');
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, prescriptions(*)')
+        .order('id', { ascending: false });
+
       if (error || !data || data.length === 0) return INITIAL_APPOINTMENTS;
-      return data.map((a: any) => ({
-        id: a.id,
-        doctorName: a.doctor_name,
-        specialty: a.specialty,
-        date: a.date,
-        time: a.time,
-        type: a.type,
-        status: a.status,
-        patientName: a.patient_name
-      }));
+      return data.map((a: any) => {
+        const rawPrescription = Array.isArray(a.prescriptions) && a.prescriptions.length > 0
+          ? a.prescriptions[0]
+          : a.prescriptions;
+
+        const prescription: Prescription | undefined = rawPrescription ? {
+          id: rawPrescription.id,
+          doctorName: rawPrescription.doctor_name,
+          patientName: rawPrescription.patient_name,
+          date: rawPrescription.date,
+          medications: rawPrescription.medications || [],
+          notes: rawPrescription.notes || '',
+          qrCodeToken: rawPrescription.qr_code_token,
+          signatureStamp: rawPrescription.signature_stamp,
+          isDispensed: rawPrescription.is_dispensed,
+          dispensedAt: rawPrescription.dispensed_at,
+          dispensedByPharmacy: rawPrescription.dispensed_by_pharmacy
+        } : undefined;
+
+        return {
+          id: a.id,
+          doctorName: a.doctor_name,
+          specialty: a.specialty,
+          date: a.date,
+          time: a.time,
+          type: a.type,
+          status: a.status,
+          patientName: a.patient_name,
+          prescription
+        };
+      });
     } catch {
       return INITIAL_APPOINTMENTS;
     }
   },
 
-  async createAppointment(appointment: Appointment): Promise<void> {
-    if (!isSupabaseConfigured || !supabase) return;
+  async createAppointment(appointment: Appointment): Promise<number> {
+    if (!isSupabaseConfigured || !supabase) return appointment.id;
     try {
-      await supabase.from('appointments').insert([{
+      // Récupérer l'UID de l'utilisateur connecté pour la RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      const patientUserId = user?.id ?? null;
+
+      const { data, error } = await supabase.from('appointments').insert([{
         doctor_name: appointment.doctorName,
         specialty: appointment.specialty,
         date: appointment.date,
         time: appointment.time,
         type: appointment.type,
         status: appointment.status,
-        patient_name: appointment.patientName
-      }]);
+        patient_name: appointment.patientName,
+        patient_user_id: patientUserId  // ← lien RLS
+      }]).select('id').single();
+
+      if (error) {
+        console.warn("Could not save appointment to Supabase:", error);
+        return appointment.id;
+      }
+      return data?.id || appointment.id;
     } catch (e) {
       console.warn("Could not save appointment to Supabase:", e);
+      return appointment.id;
     }
   },
 
@@ -95,8 +140,13 @@ export const dataService = {
   async savePrescription(prescription: Prescription): Promise<void> {
     if (!isSupabaseConfigured || !supabase) return;
     try {
+      // Récupérer l'UID du médecin connecté pour la RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      const doctorUserId = user?.id ?? null;
+
       await supabase.from('prescriptions').upsert([{
         id: prescription.id,
+        appointment_id: prescription.appointmentId || null,
         doctor_name: prescription.doctorName,
         patient_name: prescription.patientName,
         date: prescription.date,
@@ -106,14 +156,170 @@ export const dataService = {
         signature_stamp: prescription.signatureStamp,
         is_dispensed: prescription.isDispensed || false,
         dispensed_at: prescription.dispensedAt ? new Date().toISOString() : null,
-        dispensed_by_pharmacy: prescription.dispensedByPharmacy || null
+        dispensed_by_pharmacy: prescription.dispensedByPharmacy || null,
+        doctor_user_id: doctorUserId  // ← lien RLS
       }]);
     } catch (e) {
       console.warn("Could not sync prescription to Supabase:", e);
     }
   },
 
-  // 4. SAAS INVOICES (Mobile Money)
+  async dispensePrescription(prescriptionId: string, pharmacyName: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('prescriptions')
+        .update({
+          is_dispensed: true,
+          dispensed_at: new Date().toISOString(),
+          dispensed_by_pharmacy: pharmacyName
+        })
+        .eq('id', prescriptionId);
+
+      return !error;
+    } catch (e) {
+      console.warn("Could not update prescription status in Supabase:", e);
+      return false;
+    }
+  },
+
+  async updateAppointmentStatus(appointmentId: number, status: 'Confirmé' | 'Annulé' | 'Terminé'): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', appointmentId);
+
+      return !error;
+    } catch (e) {
+      console.warn("Could not update appointment status in Supabase:", e);
+      return false;
+    }
+  },
+
+  async updateDoctorSchedule(doctorId: number, schedule: any[], slots: string[]): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('doctors')
+        .update({ schedule, slots })
+        .eq('id', doctorId);
+
+      return !error;
+    } catch (e) {
+      console.warn("Could not update doctor schedule in Supabase:", e);
+      return false;
+    }
+  },
+
+  async updateDoctorStatus(doctorId: number, status: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      if (status === 'Suspendu') {
+        const { error } = await supabase.from('doctors').delete().eq('id', doctorId);
+        return !error;
+      }
+      return true;
+    } catch (e) {
+      console.warn("Could not update doctor in Supabase:", e);
+      return false;
+    }
+  },
+
+  // 4. SAAS ACCOUNTS (B2B Cabinets & Hôpitaux)
+  async getSaaSAccounts(): Promise<SaaSDoctorAccount[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      return INITIAL_SAAS_ACCOUNTS;
+    }
+    try {
+      const { data, error } = await supabase.from('saas_accounts').select('*').order('id');
+      if (error || !data || data.length === 0) return INITIAL_SAAS_ACCOUNTS;
+      return data.map((acc: any) => ({
+        id: acc.id,
+        name: acc.name,
+        specialty: acc.specialty || 'Généraliste',
+        clinicName: acc.clinic_name,
+        address: acc.address || '',
+        phone: acc.phone || '',
+        email: acc.email,
+        plan: acc.plan || 'Pro Cabinet',
+        monthlyFeeUSD: acc.monthly_fee_usd || 59,
+        status: acc.status || 'Actif',
+        joinedDate: acc.joined_date || 'Aujourd\'hui',
+        totalConsultations: acc.total_consultations || 0,
+        videoHoursUsed: acc.video_hours_used || 0,
+        image: acc.image || ''
+      }));
+    } catch {
+      return INITIAL_SAAS_ACCOUNTS;
+    }
+  },
+
+  async addSaaSAccount(account: SaaSDoctorAccount): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('saas_accounts').insert([{
+        name: account.name,
+        specialty: account.specialty,
+        clinic_name: account.clinicName,
+        address: account.address,
+        phone: account.phone,
+        email: account.email,
+        plan: account.plan,
+        monthly_fee_usd: account.monthlyFeeUSD,
+        status: account.status,
+        joined_date: account.joinedDate,
+        total_consultations: account.totalConsultations,
+        video_hours_used: account.videoHoursUsed,
+        image: account.image,
+        owner_user_id: user?.id ?? null
+      }]);
+    } catch (e) {
+      console.warn("Could not insert SaaS account to Supabase:", e);
+    }
+  },
+
+  async updateSaaSAccountStatus(id: number, status: 'Actif' | 'En attente' | 'Suspendu'): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('saas_accounts')
+        .update({ status })
+        .eq('id', id);
+
+      return !error;
+    } catch (e) {
+      console.warn("Could not update SaaS account status in Supabase:", e);
+      return false;
+    }
+  },
+
+  // 5. SAAS INVOICES (Mobile Money)
+  async getInvoices(): Promise<SaaSSubscriptionInvoice[]> {
+    if (!isSupabaseConfigured || !supabase) return [];
+    try {
+      const { data, error } = await supabase.from('saas_invoices').select('*').order('created_at', { ascending: false });
+      if (error || !data) return [];
+      return data.map((inv: any) => ({
+        id: inv.id,
+        accountName: inv.account_name,
+        clinicName: inv.clinic_name || '',
+        plan: inv.plan,
+        amountUSD: inv.amount_usd,
+        amountCDF: inv.amount_cdf,
+        date: inv.date,
+        paymentMethod: inv.payment_method,
+        phoneNumber: inv.phone_number,
+        status: inv.status,
+        transactionRef: inv.transaction_ref
+      }));
+    } catch {
+      return [];
+    }
+  },
+
   async saveInvoice(invoice: SaaSSubscriptionInvoice): Promise<void> {
     if (!isSupabaseConfigured || !supabase) return;
     try {
@@ -133,6 +339,24 @@ export const dataService = {
     } catch (e) {
       console.warn("Could not sync invoice to Supabase:", e);
     }
+  },
+
+  // 6. REALTIME SUBSCRIPTION
+  subscribeToTable(table: string, onUpdate: () => void): () => void {
+    if (!isSupabaseConfigured || !supabase) {
+      return () => {};
+    }
+
+    const channel = supabase
+      .channel(`public:${table}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        onUpdate();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // 5. SUPER ADMINS & ACCESS CONTROL

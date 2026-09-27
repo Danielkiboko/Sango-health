@@ -53,7 +53,8 @@ export default function SangoHealthApp() {
             setCurrentUser({
               name: email.includes('daniel') ? 'KIBOKO Daniel' : 'KIBONGE François',
               role: 'admin',
-              email
+              email,
+              uid: session.user.id  // ← UUID Supabase Auth pour les RLS
             });
             // Important : Nous gardons la vue par défaut sur 'home' (Accueil)
             // L'administrateur peut accéder au panel à tout moment via le bouton dédié dans le menu.
@@ -68,7 +69,8 @@ export default function SangoHealthApp() {
             setCurrentUser({
               name: email.includes('daniel') ? 'KIBOKO Daniel' : 'KIBONGE François',
               role: 'admin',
-              email
+              email,
+              uid: session.user.id  // ← UUID Supabase Auth pour les RLS
             });
           }
           if (event === 'PASSWORD_RECOVERY') {
@@ -84,15 +86,60 @@ export default function SangoHealthApp() {
     }
   }, []);
 
+  // Chargement initial des praticiens et rendez-vous depuis Supabase
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      const [fetchedDocs, fetchedApps] = await Promise.all([
+        dataService.getDoctors(),
+        dataService.getAppointments()
+      ]);
+
+      if (isMounted) {
+        if (fetchedDocs && fetchedDocs.length > 0) setDoctors(fetchedDocs);
+        if (fetchedApps && fetchedApps.length > 0) setAppointments(fetchedApps);
+      }
+    };
+
+    loadData();
+
+    // Abonnement aux changements temps réel Supabase
+    const unsubAppointments = dataService.subscribeToTable('appointments', () => {
+      dataService.getAppointments().then(apps => {
+        if (isMounted && apps && apps.length > 0) setAppointments(apps);
+      });
+    });
+
+    const unsubPrescriptions = dataService.subscribeToTable('prescriptions', () => {
+      dataService.getAppointments().then(apps => {
+        if (isMounted && apps && apps.length > 0) setAppointments(apps);
+      });
+    });
+
+    const unsubDoctors = dataService.subscribeToTable('doctors', () => {
+      dataService.getDoctors().then(docs => {
+        if (isMounted && docs && docs.length > 0) setDoctors(docs);
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      unsubAppointments();
+      unsubPrescriptions();
+      unsubDoctors();
+    };
+  }, [currentUser?.uid]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentView('search');
   };
 
-  const handleBookSlot = (doctor: Doctor, date: string, time: string, type: string) => {
+  const handleBookSlot = async (doctor: Doctor, date: string, time: string, type: string) => {
+    const tempId = Date.now();
     const newAppointment: Appointment = {
-      id: Date.now(),
+      id: tempId,
       doctorName: doctor.name,
       specialty: doctor.specialty,
       date: date || "2026-06-12",
@@ -102,28 +149,33 @@ export default function SangoHealthApp() {
       patientName: currentUser ? currentUser.name : "Patient Invité"
     };
 
-    setAppointments([newAppointment, ...appointments]);
-    dataService.createAppointment(newAppointment);
+    setAppointments(prev => [newAppointment, ...prev]);
     setIsBookingModalOpen(false);
     setSelectedDoctor(null);
     showNotification(`Rendez-vous confirmé avec ${doctor.name} !`);
     setCurrentView('dashboard');
+
+    const realId = await dataService.createAppointment(newAppointment);
+    if (realId && realId !== tempId) {
+      setAppointments(prev => prev.map(a => a.id === tempId ? { ...a, id: realId } : a));
+    }
   };
 
-  const cancelAppointment = (id: number) => {
-    setAppointments(appointments.map(app => app.id === id ? { ...app, status: "Annulé" } : app));
+  const cancelAppointment = async (id: number) => {
+    setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: "Annulé" } : app));
+    await dataService.updateAppointmentStatus(id, "Annulé");
     showNotification("Le rendez-vous a été annulé avec succès.", "info");
   };
 
-  const handleSavePrescription = (appointmentId: number, prescription: any) => {
+  const handleSavePrescription = async (appointmentId: number, prescription: any) => {
     setAppointments(prev => prev.map(app => 
       app.id === appointmentId ? { ...app, prescription } : app
     ));
-    dataService.savePrescription(prescription);
+    await dataService.savePrescription(prescription);
     showNotification(`Ordonnance ${prescription.id} générée et transmise au patient !`, "success");
   };
 
-  const handleDispensePrescription = (prescriptionId: string, pharmacyName: string) => {
+  const handleDispensePrescription = async (prescriptionId: string, pharmacyName: string) => {
     setAppointments(prev => prev.map(app => {
       if (app.prescription && app.prescription.id === prescriptionId) {
         return {
@@ -138,36 +190,47 @@ export default function SangoHealthApp() {
       }
       return app;
     }));
+    await dataService.dispensePrescription(prescriptionId, pharmacyName);
     showNotification(`Ordonnance ${prescriptionId} validée et servie par ${pharmacyName}`, 'success');
   };
 
-  const handleUpdateDoctorSchedule = (doctorId: number, schedule: DoctorScheduleDay[], slots: string[]) => {
+  const handleUpdateDoctorSchedule = async (doctorId: number, schedule: DoctorScheduleDay[], slots: string[]) => {
     setDoctors(prev => prev.map(doc => {
       if (doc.id === doctorId) {
         return { ...doc, schedule, slots };
       }
       return doc;
     }));
+    await dataService.updateDoctorSchedule(doctorId, schedule, slots);
     showNotification("Disponibilités praticien enregistrées et synchronisées !", 'success');
   };
 
   // Admin SaaS Handlers
-  const handleAddDoctorFromSaaS = (newDoctor: Doctor) => {
+  const handleAddDoctorFromSaaS = async (newDoctor: Doctor) => {
     setDoctors(prev => [newDoctor, ...prev]);
+    await dataService.addDoctor(newDoctor);
     showNotification(`Nouveau cabinet activé : ${newDoctor.name}`, 'success');
   };
 
-  const handleUpdateDoctorStatus = (id: number, status: string) => {
+  const handleUpdateDoctorStatus = async (id: number, status: string) => {
     if (status === 'Suspendu') {
       setDoctors(prev => prev.filter(d => d.id !== id));
       showNotification('Compte médecin suspendu sur le répertoire public.', 'info');
     } else {
       showNotification('Compte médecin réactivé avec succès.', 'success');
     }
+    await dataService.updateDoctorStatus(id, status);
   };
 
   const handleLogin = (user: UserProfile) => {
-    setCurrentUser(user);
+    // Enrichir le profil avec l'UID Supabase Auth pour les politiques RLS
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setCurrentUser({ ...user, uid: session?.user?.id });
+      });
+    } else {
+      setCurrentUser(user);
+    }
     setIsAuthModalOpen(false);
     if (user.role === 'admin') {
       setCurrentView('saas_admin');
@@ -205,14 +268,16 @@ export default function SangoHealthApp() {
         </div>
       )}
 
-      {/* Header - Clean, Uncluttered, with single unified 'Se connecter' button */}
-      <Header
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        currentUser={currentUser}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onLogout={handleLogout}
-      />
+      {/* Header - Clean, Uncluttered, Masqué sur le Control Panel SaaS pour affichage plein écran */}
+      {currentView !== 'saas_admin' && (
+        <Header
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          currentUser={currentUser}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main Routed Content */}
       <main className="flex-1">
@@ -273,8 +338,11 @@ export default function SangoHealthApp() {
           currentUser?.role === 'admin' ? (
             <SaaSControlPanel 
               doctors={doctors}
+              appointments={appointments}
               onAddDoctor={handleAddDoctorFromSaaS}
               onUpdateDoctorStatus={handleUpdateDoctorStatus}
+              onReturnHome={() => setCurrentView('home')}
+              currentUser={currentUser}
             />
           ) : (
             <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-slate-200 text-center shadow-xl">
@@ -325,11 +393,13 @@ export default function SangoHealthApp() {
         />
       )}
 
-      {/* Clean Footer */}
-      <Footer
-        setCurrentView={setCurrentView}
-        onOpenAuthForDoctor={() => { setAuthModalRole('doctor'); setIsAuthModalOpen(true); }}
-      />
+      {/* Clean Footer - Masqué sur le SaaS Control Panel */}
+      {currentView !== 'saas_admin' && (
+        <Footer
+          setCurrentView={setCurrentView}
+          onOpenAuthForDoctor={() => { setAuthModalRole('doctor'); setIsAuthModalOpen(true); }}
+        />
+      )}
     </div>
   );
 }
