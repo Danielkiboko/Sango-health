@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LogOut, ShieldCheck, Home, Search, FileText, Stethoscope } from 'lucide-react';
+import { User, LogOut, ShieldCheck, Home, Search, FileText, Stethoscope, Users } from 'lucide-react';
 import { UserProfile } from '../types';
 import LanguageSelector from './LanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
@@ -46,14 +46,29 @@ export default function Header({
               {t('nav_home')}
             </button>
             
-            <button 
-              onClick={() => setCurrentView('search')} 
-              className={`hover:text-blue-600 transition ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
-            >
-              {currentUser?.role === 'admin' ? 'Annuaire Praticiens' : t('nav_find_doctor')}
-            </button>
+            {/* "Trouver un médecin" : Uniquement pour les visiteurs non connectés ou patients */}
+            {(!currentUser || currentUser.role === 'patient') && (
+              <button 
+                onClick={() => setCurrentView('search')} 
+                className={`hover:text-blue-600 transition ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
+              >
+                {t('nav_find_doctor')}
+              </button>
+            )}
 
-            {/* Conditional contextual link based on logged in role */}
+            {/* Pour les soignants : Réseau Confrères (annuaire professionnel pour orientation patient) */}
+            {currentUser?.role === 'doctor' && (
+              <button 
+                onClick={() => setCurrentView('search')} 
+                className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
+                title="Consulter l'annuaire des confrères pour adresser un patient"
+              >
+                <Users className="w-4 h-4 text-blue-600" />
+                <span>Réseau Confrères</span>
+              </button>
+            )}
+
+            {/* Espace Dossier Patient */}
             {currentUser?.role === 'patient' && (
               <button 
                 onClick={() => setCurrentView('dashboard')} 
@@ -63,12 +78,14 @@ export default function Header({
               </button>
             )}
 
+            {/* Espace Médecin */}
             {currentUser?.role === 'doctor' && (
               <button 
                 onClick={() => setCurrentView('doctor_portal')} 
-                className={`hover:text-blue-600 transition ${currentView === 'doctor_portal' ? 'text-blue-600 font-semibold' : ''}`}
+                className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'doctor_portal' ? 'text-blue-600 font-bold' : ''}`}
               >
-                {t('nav_doctor_portal')}
+                <Stethoscope className="w-4 h-4 text-blue-600" />
+                <span>Mon Espace Cabinet</span>
               </button>
             )}
 
@@ -190,15 +207,31 @@ export default function Header({
           <span className="text-[10px]">{t('nav_home')}</span>
         </button>
 
-        <button
-          onClick={() => setCurrentView('search')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-            currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Search className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">{currentUser?.role === 'admin' ? 'Annuaire' : t('nav_find_doctor')}</span>
-        </button>
+        {/* Recherche praticien : Uniquement pour les visiteurs non connectés ou patients */}
+        {(!currentUser || currentUser.role === 'patient') && (
+          <button
+            onClick={() => setCurrentView('search')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Search className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px]">{t('nav_find_doctor')}</span>
+          </button>
+        )}
+
+        {/* Confrères : Pour les médecins */}
+        {currentUser?.role === 'doctor' && (
+          <button
+            onClick={() => setCurrentView('search')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Users className="w-5 h-5 mb-0.5 text-blue-600" />
+            <span className="text-[10px]">Confrères</span>
+          </button>
+        )}
 
         {currentUser?.role === 'admin' ? (
           <button
@@ -218,7 +251,7 @@ export default function Header({
             }`}
           >
             <Stethoscope className="w-5 h-5 mb-0.5 text-blue-600" />
-            <span className="text-[10px]">{t('nav_doctor_portal')}</span>
+            <span className="text-[10px] font-bold">Mon Cabinet</span>
           </button>
         ) : currentUser?.role === 'patient' ? (
           <button
