@@ -1,6 +1,8 @@
 import React from 'react';
 import { User, LogOut, ShieldCheck, Home, Search, FileText, Stethoscope } from 'lucide-react';
 import { UserProfile } from '../types';
+import LanguageSelector from './LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeaderProps {
   currentView: string;
@@ -17,6 +19,8 @@ export default function Header({
   onOpenAuthModal,
   onLogout
 }: HeaderProps) {
+  const { t } = useLanguage();
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
@@ -39,14 +43,14 @@ export default function Header({
               onClick={() => setCurrentView('home')} 
               className={`hover:text-blue-600 transition ${currentView === 'home' ? 'text-blue-600 font-semibold' : ''}`}
             >
-              Accueil
+              {t('nav_home')}
             </button>
             
             <button 
               onClick={() => setCurrentView('search')} 
               className={`hover:text-blue-600 transition ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
             >
-              Trouver un médecin
+              {t('nav_find_doctor')}
             </button>
 
             {/* Conditional contextual link based on logged in role */}
@@ -55,7 +59,7 @@ export default function Header({
                 onClick={() => setCurrentView('dashboard')} 
                 className={`hover:text-blue-600 transition ${currentView === 'dashboard' ? 'text-blue-600 font-semibold' : ''}`}
               >
-                Mon Dossier Santé
+                {t('nav_my_records')}
               </button>
             )}
 
@@ -64,7 +68,7 @@ export default function Header({
                 onClick={() => setCurrentView('doctor_portal')} 
                 className={`hover:text-blue-600 transition ${currentView === 'doctor_portal' ? 'text-blue-600 font-semibold' : ''}`}
               >
-                Espace Praticien
+                {t('nav_doctor_portal')}
               </button>
             )}
 
@@ -73,7 +77,7 @@ export default function Header({
                 onClick={() => setCurrentView('pharmacy_portal')} 
                 className={`hover:text-blue-600 transition ${currentView === 'pharmacy_portal' ? 'text-blue-600 font-semibold' : ''}`}
               >
-                Portail Pharmacie
+                {t('nav_pharmacy_portal')}
               </button>
             )}
 
@@ -83,13 +87,16 @@ export default function Header({
                 className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'saas_admin' ? 'text-blue-600 font-bold' : ''}`}
               >
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>SaaS Control Panel</span>
+                <span>{t('nav_cpanel')}</span>
               </button>
             )}
           </nav>
 
-          {/* Right Section: Mobile & Desktop Actions */}
+          {/* Right Section: Language Selector + Mobile & Desktop Actions */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* SÉLECTEUR DE LANGUE (6 LANGUES : FR, EN, LN, SW, KG, TS) */}
+            <LanguageSelector />
+
             {/* BOUTON C-PANEL DÉDIÉ (Visible sur mobile ET ordinateur pour les Super Admins) */}
             {currentUser?.role === 'admin' && (
               <button
@@ -147,7 +154,7 @@ export default function Header({
 
                 <button 
                   onClick={onLogout}
-                  title="Déconnexion"
+                  title={t('nav_logout')}
                   className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition ml-1"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -156,10 +163,10 @@ export default function Header({
             ) : (
               <button 
                 onClick={onOpenAuthModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-1.5 sm:space-x-2"
               >
                 <User className="w-4 h-4" />
-                <span>Se connecter</span>
+                <span>{t('nav_signin')}</span>
               </button>
             )}
           </div>
@@ -175,7 +182,7 @@ export default function Header({
           }`}
         >
           <Home className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">Accueil</span>
+          <span className="text-[10px]">{t('nav_home')}</span>
         </button>
 
         <button
@@ -185,7 +192,7 @@ export default function Header({
           }`}
         >
           <Search className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">Médecins</span>
+          <span className="text-[10px]">{t('nav_find_doctor')}</span>
         </button>
 
         {currentUser?.role === 'admin' ? (
@@ -206,7 +213,7 @@ export default function Header({
             }`}
           >
             <Stethoscope className="w-5 h-5 mb-0.5 text-blue-600" />
-            <span className="text-[10px]">Praticien</span>
+            <span className="text-[10px]">{t('nav_doctor_portal')}</span>
           </button>
         ) : currentUser?.role === 'patient' ? (
           <button
@@ -216,7 +223,7 @@ export default function Header({
             }`}
           >
             <FileText className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Mon Dossier</span>
+            <span className="text-[10px]">{t('nav_my_records')}</span>
           </button>
         ) : (
           <button
@@ -224,7 +231,7 @@ export default function Header({
             className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-blue-600 transition"
           >
             <User className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Connexion</span>
+            <span className="text-[10px]">{t('nav_signin')}</span>
           </button>
         )}
       </nav>
