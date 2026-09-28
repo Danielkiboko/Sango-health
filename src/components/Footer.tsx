@@ -36,8 +36,8 @@ export default function Footer({ setCurrentView, onOpenAuthForDoctor }: FooterPr
         <div>
           <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">{t('footer_pros')}</h4>
           <ul className="space-y-2 text-sm">
-            <li><button onClick={onOpenAuthForDoctor} className="hover:text-white transition">{t('footer_are_you_pro')}</button></li>
-            <li><a href="#pro" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">{t('footer_pro_space')}</a></li>
+            <li><a href="/loginns?role=doctor" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">{t('footer_are_you_pro')}</a></li>
+            <li><a href="/loginns?role=doctor" onClick={(e) => { e.preventDefault(); onOpenAuthForDoctor(); }} className="hover:text-white transition">{t('footer_pro_space')}</a></li>
             <li><button onClick={() => setCurrentView('search')} className="hover:text-white transition">{t('footer_directory')}</button></li>
           </ul>
         </div>

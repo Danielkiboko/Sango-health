@@ -86,6 +86,42 @@ export default function SangoHealthApp() {
     }
   }, []);
 
+  // Synchronisation et routage URL direct (/loginns, /logins, /cpanel, /saas_admin, /search, etc.)
+  useEffect(() => {
+    const handleUrlRouting = () => {
+      const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+      const searchParams = new URLSearchParams(window.location.search);
+      const roleParam = searchParams.get('role') || searchParams.get('portal');
+
+      if (path === '/loginns' || path === '/logins' || path === '/login' || path === '/connexion') {
+        if (roleParam === 'doctor' || roleParam === 'medecin') {
+          setAuthModalRole('doctor');
+        } else if (roleParam === 'admin' || roleParam === 'saas') {
+          setAuthModalRole('admin');
+        } else {
+          setAuthModalRole('patient');
+        }
+        setIsAuthModalOpen(true);
+      } else {
+        if (path === '/saas_admin' || path === '/cpanel' || path === '/admin') {
+          setCurrentView('saas_admin');
+        } else if (path === '/doctor_portal' || path === '/cabinet') {
+          setCurrentView('doctor_portal');
+        } else if (path === '/dashboard' || path === '/dossier') {
+          setCurrentView('dashboard');
+        } else if (path === '/search' || path === '/recherche') {
+          setCurrentView('search');
+        } else if (path === '' || path === '/') {
+          setCurrentView('home');
+        }
+      }
+    };
+
+    handleUrlRouting();
+    window.addEventListener('popstate', handleUrlRouting);
+    return () => window.removeEventListener('popstate', handleUrlRouting);
+  }, []);
+
   // Chargement initial des praticiens et rendez-vous depuis Supabase
   useEffect(() => {
     let isMounted = true;
@@ -222,6 +258,30 @@ export default function SangoHealthApp() {
     await dataService.updateDoctorStatus(id, status);
   };
 
+  const handleOpenAuth = (portal?: 'patient' | 'doctor' | 'admin') => {
+    const role = portal || 'patient';
+    setAuthModalRole(role);
+    setIsAuthModalOpen(true);
+    const query = role !== 'patient' ? `?role=${role}` : '';
+    try {
+      window.history.pushState({ authModal: true, role }, '', `/loginns${query}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCloseAuth = () => {
+    setIsAuthModalOpen(false);
+    try {
+      if (window.location.pathname.toLowerCase().includes('login')) {
+        const targetPath = currentView === 'home' ? '/' : `/${currentView}`;
+        window.history.replaceState({}, '', targetPath);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const handleLogin = (user: UserProfile) => {
     // Enrichir le profil avec l'UID Supabase Auth pour les politiques RLS
     if (supabase) {
@@ -233,12 +293,16 @@ export default function SangoHealthApp() {
     }
     setIsAuthModalOpen(false);
     if (user.role === 'admin') {
+      window.history.replaceState({}, '', '/saas_admin');
       setCurrentView('saas_admin');
     } else if (user.role === 'doctor') {
+      window.history.replaceState({}, '', '/doctor_portal');
       setCurrentView('doctor_portal');
     } else if (user.role === 'pharmacy') {
+      window.history.replaceState({}, '', '/pharmacy_portal');
       setCurrentView('pharmacy_portal');
     } else {
+      window.history.replaceState({}, '', '/dashboard');
       setCurrentView('dashboard');
     }
     showNotification(`Bienvenue, ${user.name} !`);
@@ -254,6 +318,7 @@ export default function SangoHealthApp() {
     }
     setCurrentUser(null);
     setCurrentView('home');
+    window.history.replaceState({}, '', '/');
     showNotification("Déconnecté avec succès", "info");
   };
 
@@ -287,10 +352,7 @@ export default function SangoHealthApp() {
           currentView={currentView}
           setCurrentView={setCurrentView}
           currentUser={currentUser}
-          onOpenAuthModal={(portal) => {
-            if (portal) setAuthModalRole(portal);
-            setIsAuthModalOpen(true);
-          }}
+          onOpenAuthModal={handleOpenAuth}
           onLogout={handleLogout}
         />
       )}
@@ -404,7 +466,7 @@ export default function SangoHealthApp() {
       {/* Auth Modal with automatic role detection */}
       {isAuthModalOpen && (
         <AuthModal 
-          onClose={() => setIsAuthModalOpen(false)}
+          onClose={handleCloseAuth}
           onLogin={handleLogin}
           initialPortal={authModalRole as any}
         />
@@ -425,7 +487,7 @@ export default function SangoHealthApp() {
       {currentView !== 'saas_admin' && (
         <Footer
           setCurrentView={setCurrentView}
-          onOpenAuthForDoctor={() => { setAuthModalRole('doctor'); setIsAuthModalOpen(true); }}
+          onOpenAuthForDoctor={() => handleOpenAuth('doctor')}
         />
       )}
     </div>

@@ -129,23 +129,25 @@ export default function Header({
                   <span>{t('nav_find_doctor')}</span>
                 </button>
 
-                <button 
-                  onClick={() => onOpenAuthModal('doctor')} 
-                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600"
+                <a 
+                  href="/loginns?role=doctor"
+                  onClick={(e) => { e.preventDefault(); onOpenAuthModal('doctor'); }} 
+                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600 cursor-pointer"
                   title="Connexion praticiens et cabinets médicaux"
                 >
                   <Stethoscope className="w-4 h-4 text-blue-600" />
                   <span>Espace Soignants</span>
-                </button>
+                </a>
 
-                <button 
-                  onClick={() => onOpenAuthModal('admin')} 
-                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600"
+                <a 
+                  href="/loginns?role=admin"
+                  onClick={(e) => { e.preventDefault(); onOpenAuthModal('admin'); }} 
+                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600 cursor-pointer"
                   title="Accès direction et administration"
                 >
                   <ShieldCheck className="w-4 h-4 text-blue-600" />
                   <span>Espace Admin</span>
-                </button>
+                </a>
               </>
             )}
           </nav>
@@ -200,13 +202,14 @@ export default function Header({
               </div>
             ) : (
               /* Bouton de connexion pour visiteur */
-              <button 
-                onClick={() => onOpenAuthModal('patient')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-2"
+              <a 
+                href="/loginns"
+                onClick={(e) => { e.preventDefault(); onOpenAuthModal('patient'); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-2 cursor-pointer"
               >
                 <User className="w-4 h-4" />
                 <span>{t('nav_signin')}</span>
-              </button>
+              </a>
             )}
           </div>
         </div>
@@ -302,13 +305,14 @@ export default function Header({
               <span className="text-[10px]">{t('nav_find_doctor')}</span>
             </button>
 
-            <button
-              onClick={() => onOpenAuthModal('patient')}
-              className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-blue-600 transition"
+            <a
+              href="/loginns"
+              onClick={(e) => { e.preventDefault(); onOpenAuthModal('patient'); }}
+              className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-blue-600 transition cursor-pointer"
             >
               <User className="w-5 h-5 mb-0.5" />
               <span className="text-[10px]">{t('nav_signin')}</span>
-            </button>
+            </a>
           </>
         )}
       </nav>
