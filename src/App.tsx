@@ -262,9 +262,8 @@ export default function SangoHealthApp() {
     const role = portal || 'patient';
     setAuthModalRole(role);
     setIsAuthModalOpen(true);
-    const query = role !== 'patient' ? `?role=${role}` : '';
     try {
-      window.history.pushState({ authModal: true, role }, '', `/loginns${query}`);
+      window.history.pushState({ authModal: true }, '', '/loginns');
     } catch {
       // ignore
     }
