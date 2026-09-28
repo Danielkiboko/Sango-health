@@ -70,7 +70,7 @@ export const dataService = {
         .select('*, prescriptions(*)')
         .order('id', { ascending: false });
 
-      if (error || !data || data.length === 0) return INITIAL_APPOINTMENTS;
+      if (error || !data || data.length === 0) return [];
       return data.map((a: any) => {
         const rawPrescription = Array.isArray(a.prescriptions) && a.prescriptions.length > 0
           ? a.prescriptions[0]
@@ -103,7 +103,7 @@ export const dataService = {
         };
       });
     } catch {
-      return INITIAL_APPOINTMENTS;
+      return [];
     }
   },
 
@@ -230,11 +230,11 @@ export const dataService = {
   // 4. SAAS ACCOUNTS (B2B Cabinets & Hôpitaux)
   async getSaaSAccounts(): Promise<SaaSDoctorAccount[]> {
     if (!isSupabaseConfigured || !supabase) {
-      return INITIAL_SAAS_ACCOUNTS;
+      return [];
     }
     try {
       const { data, error } = await supabase.from('saas_accounts').select('*').order('id');
-      if (error || !data || data.length === 0) return INITIAL_SAAS_ACCOUNTS;
+      if (error || !data || data.length === 0) return [];
       return data.map((acc: any) => ({
         id: acc.id,
         name: acc.name,
@@ -252,7 +252,7 @@ export const dataService = {
         image: acc.image || ''
       }));
     } catch {
-      return INITIAL_SAAS_ACCOUNTS;
+      return [];
     }
   },
 

@@ -163,41 +163,10 @@ export default function DoctorPortal({
   ]);
 
   // Liste des ordonnances émises par ce médecin
-  const [issuedPrescriptions, setIssuedPrescriptions] = useState<Prescription[]>([
-    {
-      id: "ORD-942810",
-      doctorName: currentDoctor.name,
-      patientName: "Christian Kabeya",
-      date: "27 Septembre 2026",
-      medications: [
-        { name: "Amoxicilline", dosage: "500mg", duration: "7 jours", instructions: "1 gélule matin, midi et soir" },
-        { name: "Paracétamol", dosage: "1000mg", duration: "5 jours", instructions: "1 comprimé si douleur" }
-      ],
-      notes: "Contrôle clinique dans 10 jours si persistance des symptômes.",
-      qrCodeToken: "SANGO-ORD-942810-VERIFIED",
-      signatureStamp: "Signé numériquement • Dr. Partenaire",
-      isDispensed: true,
-      dispensedAt: "27 Sept 2026",
-      dispensedByPharmacy: "Pharmacie de la Gombe"
-    }
-  ]);
+  const [issuedPrescriptions, setIssuedPrescriptions] = useState<Prescription[]>([]);
 
   // Historique des factures SaaS
-  const [invoices, setInvoices] = useState<SaaSSubscriptionInvoice[]>([
-    {
-      id: "FACT-SAAS-90412",
-      accountName: currentDoctor.name,
-      clinicName: "Cabinet Médical de Kinshasa",
-      plan: "Pro Cabinet",
-      amountUSD: 59,
-      amountCDF: 59 * 2850,
-      date: "01 Septembre 2026",
-      paymentMethod: "M-Pesa",
-      phoneNumber: "+243 81 294 8831",
-      status: "Payé",
-      transactionRef: "RDC-MPESA-88492"
-    }
-  ]);
+  const [invoices, setInvoices] = useState<SaaSSubscriptionInvoice[]>([]);
 
   // Liste consolidée des patients suivis
   const patientsList = useMemo(() => {
@@ -223,32 +192,6 @@ export default function DoctorPortal({
         item.lastDate = app.date;
       }
     });
-
-    // Patients exemples si liste vide
-    if (map.size === 0) {
-      map.set("Christian Kabeya", {
-        name: "Christian Kabeya",
-        count: 3,
-        lastDate: "Aujourd'hui à 14:30",
-        type: "Cabinet & Vidéo",
-        phone: "+243 82 458 9201",
-        bloodGroup: "A+",
-        allergies: "Pénicilline (réaction cutanée)",
-        vitals: { bp: "125/82 mmHg", pulse: "72 bpm", temp: "37.1°C" },
-        notes: "Antécédent de bronchite saisonnière. Bien stabilisé."
-      });
-      map.set("Francine Mulamba", {
-        name: "Francine Mulamba",
-        count: 2,
-        lastDate: "Demain à 11:00",
-        type: "Téléconsultation",
-        phone: "+243 81 772 3410",
-        bloodGroup: "O+",
-        allergies: "Aucune",
-        vitals: { bp: "118/76 mmHg", pulse: "68 bpm", temp: "36.6°C" },
-        notes: "Contrôle bilan biologique annuel."
-      });
-    }
 
     return Array.from(map.values()).filter(p => 
       patientSearch === '' || p.name.toLowerCase().includes(patientSearch.toLowerCase())
@@ -442,7 +385,7 @@ export default function DoctorPortal({
           <button
             onClick={() => {
               setActiveTab('prescriptions');
-              const firstPatient = doctorAppointments[0]?.patientName || "Christian Kabeya";
+              const firstPatient = doctorAppointments[0]?.patientName || "";
               setNewPrescriptionPatient(firstPatient);
             }}
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-3 rounded-2xl text-xs shadow-lg shadow-blue-600/30 transition flex items-center space-x-2"
@@ -709,7 +652,18 @@ export default function DoctorPortal({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {patientsList.map((patient) => (
+            {patientsList.length === 0 ? (
+              <div className="col-span-full bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                  <Users className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Aucun dossier patient actif</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Les dossiers médicaux de vos patients apparaîtront ici automatiquement dès leur première prise de rendez-vous ou téléconsultation.
+                </p>
+              </div>
+            ) : (
+              patientsList.map((patient) => (
               <div key={patient.name} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
@@ -772,10 +726,11 @@ export default function DoctorPortal({
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
+    )}
 
       {/* ======================================================== */}
       {/* 3. ÉMISSION D'ORDONNANCES MÉDICALES */}
@@ -802,7 +757,7 @@ export default function DoctorPortal({
                 <input 
                   type="text"
                   required
-                  placeholder="Ex: Christian Kabeya"
+                  placeholder="Ex: Nom complet du patient"
                   value={newPrescriptionPatient}
                   onChange={(e) => setNewPrescriptionPatient(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-blue-500 focus:bg-white"
@@ -928,7 +883,16 @@ export default function DoctorPortal({
           <div className="lg:col-span-5 space-y-4">
             <h3 className="text-base font-black text-slate-900 font-brand">Ordonnances Récemment Émises</h3>
             <div className="space-y-3">
-              {issuedPrescriptions.map((presc) => (
+              {issuedPrescriptions.length === 0 ? (
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-2 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">Aucune ordonnance émise</p>
+                  <p className="text-xs text-slate-500">Les ordonnances que vous prescrivez apparaîtront ici avec leur QR Code et leur statut de délivrance.</p>
+                </div>
+              ) : (
+                issuedPrescriptions.map((presc) => (
                 <div key={presc.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-bold text-xs text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">
@@ -969,7 +933,8 @@ export default function DoctorPortal({
                     </button>
                   </div>
                 </div>
-              ))}
+              ))
+            )}
             </div>
           </div>
         </div>
@@ -1274,7 +1239,14 @@ export default function DoctorPortal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {invoices.map((inv) => (
+                  {invoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                        Aucune facture d'abonnement pour le moment.
+                      </td>
+                    </tr>
+                  ) : (
+                    invoices.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50/60">
                       <td className="py-3.5 px-4 font-mono font-bold text-blue-700">{inv.id}</td>
                       <td className="py-3.5 px-4">{inv.date}</td>
@@ -1299,8 +1271,9 @@ export default function DoctorPortal({
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
+                  ))
+                )}
+              </tbody>
               </table>
             </div>
           </div>

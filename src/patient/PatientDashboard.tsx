@@ -73,45 +73,10 @@ interface Invoice {
   category: string;
 }
 
-const INITIAL_DOCUMENTS: MedicalDocument[] = [
-  {
-    id: "DOC-2026-081",
-    title: "Bilan Biologique Complet (NFS, Paludisme goutte épaisse, Glycémie)",
-    category: "Biologie & Analyses",
-    date: "18 Septembre 2026",
-    facility: "Laboratoire INRB Gombe, Kinshasa",
-    fileType: "pdf",
-    fileSize: "1.4 Mo",
-    notes: "Taux d'hémoglobine normal. Recherche de Plasmodium négative.",
-    isSharedWithDoctor: true,
-    uploadedAt: "19/09/2026"
-  },
-  {
-    id: "DOC-2026-042",
-    title: "Radiographie Thoracique Standard Face",
-    category: "Imagerie & Radio",
-    date: "04 Août 2026",
-    facility: "Centre Médical de Kinshasa (CMK)",
-    fileType: "image",
-    fileUrl: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=600",
-    fileSize: "3.8 Mo",
-    notes: "Pas de foyer pleuro-pulmonaire décelable. Silhouette cardiaque normale.",
-    isSharedWithDoctor: true,
-    uploadedAt: "05/08/2026"
-  }
-];
-
-const INITIAL_MESSAGES: Message[] = [
-  { id: 1, sender: "Dr. Kadima (Cardiologue)", subject: "Résultats de votre ECG", body: "Bonjour, je vous confirme que votre tracé ECG est parfaitement normal. Aucun signe d'arythmie. Poursuivez votre activité sportive modérée.", date: "26 Sept", isRead: false, avatar: "K" },
-  { id: 2, sender: "Secrétariat Clinique Ngaliema", subject: "Confirmation de votre dossier", body: "Votre dossier médical a été mis à jour. Tous les documents sont disponibles dans votre espace patient.", date: "24 Sept", isRead: true, avatar: "C" },
-  { id: 3, sender: "Dr. Mutombo (Généraliste)", subject: "Renouvellement ordonnance", body: "Suite à notre consultation du 20 sept., votre ordonnance a été renouvelée pour 3 mois.", date: "21 Sept", isRead: true, avatar: "M" }
-];
-
-const INITIAL_INVOICES: Invoice[] = [
-  { id: "INV-2026-001", description: "Consultation Vidéo - Dr. Kadima", amount: "30 000 CDF", status: "Payée", date: "26 Sept", category: "Téléconsultation" },
-  { id: "INV-2026-002", description: "Renouvellement Ordonnance - Dr. Mutombo", amount: "15 000 CDF", status: "En attente", date: "27 Sept", category: "Ordonnance" },
-  { id: "INV-2026-003", description: "Bilan Biologique Complet - INRB", amount: "45 000 CDF", status: "Remboursée", date: "18 Sept", category: "Analyses" }
-];
+// Aucun faux dossier : uniquement les données réelles du patient
+const INITIAL_DOCUMENTS: MedicalDocument[] = [];
+const INITIAL_MESSAGES: Message[] = [];
+const INITIAL_INVOICES: Invoice[] = [];
 
 const invoiceStatusStyle = (s: Invoice['status']) =>
   s === 'Payée' ? 'bg-emerald-100 text-emerald-700' : s === 'Remboursée' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
@@ -121,7 +86,7 @@ export default function PatientDashboard({ appointments, doctors, onCancel, onNe
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(null);
   const [activeVideoCallApp, setActiveVideoCallApp] = useState<Appointment | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<Message>(INITIAL_MESSAGES[0]);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyText, setReplyText] = useState('');
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [documents, setDocuments] = useState<MedicalDocument[]>(() => {
@@ -142,17 +107,16 @@ export default function PatientDashboard({ appointments, doctors, onCancel, onNe
   const [docFilePreview, setDocFilePreview] = useState<string | null>(null);
   const [docFileName, setDocFileName] = useState('');
   const [isAddVitalOpen, setIsAddVitalOpen] = useState(false);
-  const [localVitals, setLocalVitals] = useState<{ label: string; value: string; unit: string; date: string; status: string }[]>([]);
+  const [localVitals, setLocalVitals] = useState<{ label: string; value: string; unit: string; date: string; status: string }[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sango_patient_vitals');
+      if (saved) { try { return JSON.parse(saved); } catch { /* noop */ } }
+    }
+    return [];
+  });
   const [newVital, setNewVital] = useState({ label: '', value: '', unit: '', date: new Date().toISOString().split('T')[0] });
 
-  const baseVitals = [
-    { label: "Tension Artérielle", value: "120/80", unit: "mmHg", date: "27 Sept 2026", status: "normal" },
-    { label: "Fréquence Cardiaque", value: "72", unit: "bpm", date: "27 Sept 2026", status: "normal" },
-    { label: "Glycémie à jeun", value: "0.98", unit: "g/L", date: "18 Sept 2026", status: "normal" },
-    { label: "Température", value: "37.1", unit: "°C", date: "26 Sept 2026", status: "normal" },
-    { label: "Poids", value: "74", unit: "kg", date: "18 Sept 2026", status: "normal" },
-    { label: "SpO2", value: "98", unit: "%", date: "27 Sept 2026", status: "normal" },
-  ];
+  const baseVitals: { label: string; value: string; unit: string; date: string; status: string }[] = [];
 
   const allVitals = [...baseVitals, ...localVitals];
   const upcoming = appointments.filter(a => a.status === 'Confirmé');
