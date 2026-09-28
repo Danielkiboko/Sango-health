@@ -22,7 +22,6 @@ import {
   Send,
   RefreshCw,
   MessageSquare,
-  HeartPulse,
   User,
   MoreHorizontal,
   ChevronDown,
@@ -30,11 +29,15 @@ import {
   ChevronRight,
   Settings,
   Home,
-  FileText,
-  Pill,
-  ShieldAlert,
-  Flame,
-  HeartHandshake,
+  BarChart3,
+  PieChart,
+  Server,
+  Zap,
+  Globe,
+  Radio,
+  Clock,
+  Star,
+  CheckCircle,
   Menu
 } from 'lucide-react';
 import { Doctor, SaaSDoctorAccount, SuperAdminUser, Appointment } from '../types';
@@ -220,25 +223,80 @@ export default function SaaSControlPanel({
 
         {/* Navigation */}
         <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto">
-          {/* Appointments / Supervision des Consultations */}
+          {/* 1. Vue d'ensemble & Analyses SaaS */}
+          <button
+            onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'overview'
+                ? 'border border-blue-500/40 bg-blue-600/20 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <BarChart3 className={`w-5 h-5 ${activeTab === 'overview' ? 'text-blue-400' : 'text-slate-400'}`} />
+            <span>Analyses & Dashboard</span>
+          </button>
+
+          {/* 2. Finances & Abonnements SaaS */}
+          <button
+            onClick={() => { setActiveTab('billing'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'billing'
+                ? 'border border-emerald-500/40 bg-emerald-600/20 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <DollarSign className={`w-5 h-5 ${activeTab === 'billing' ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <span>Finances & Facturation</span>
+          </button>
+
+          {/* 3. Praticiens & Cabinets Réseau */}
+          <button
+            onClick={() => { setActiveTab('doctors'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'doctors'
+                ? 'border border-blue-500/40 bg-blue-600/20 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <Stethoscope className={`w-5 h-5 ${activeTab === 'doctors' ? 'text-blue-400' : 'text-slate-400'}`} />
+            <span>Praticiens & Cabinets</span>
+            <span className="ml-auto text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded-full border border-slate-700">
+              {accounts.length}
+            </span>
+          </button>
+
+          {/* 4. Supervision des Consultations */}
           <button
             onClick={() => { setActiveTab('appointments'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
               activeTab === 'appointments'
-                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+                ? 'border border-purple-500/40 bg-purple-600/20 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
-            <Calendar className={`w-5 h-5 ${activeTab === 'appointments' ? 'text-blue-400' : 'text-slate-400'}`} />
-            <span>Appointments</span>
+            <Calendar className={`w-5 h-5 ${activeTab === 'appointments' ? 'text-purple-400' : 'text-slate-400'}`} />
+            <span>Supervision Flux RDV</span>
             {appointments && appointments.length > 0 && (
-              <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-full border border-blue-500/30">
+              <span className="ml-auto text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
                 {appointments.length}
               </span>
             )}
           </button>
 
-          {/* Messages */}
+          {/* 5. Infrastructure Vidéo SFU */}
+          <button
+            onClick={() => { setActiveTab('teleconsultation'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
+              activeTab === 'teleconsultation'
+                ? 'border border-amber-500/40 bg-amber-600/20 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+            }`}
+          >
+            <Video className={`w-5 h-5 ${activeTab === 'teleconsultation' ? 'text-amber-400' : 'text-slate-400'}`} />
+            <span>Serveurs Vidéo SFU</span>
+          </button>
+
+          {/* 6. Passerelle SMS & Alertes */}
           <button
             onClick={() => { setActiveTab('messages'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
@@ -248,96 +306,22 @@ export default function SaaSControlPanel({
             }`}
           >
             <MessageSquare className={`w-5 h-5 ${activeTab === 'messages' ? 'text-white' : 'text-slate-400'}`} />
-            <span>Messages</span>
+            <span>Passerelle SMS & Alertes</span>
             <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           </button>
 
-          {/* Health (active in photo) */}
+          {/* 7. Sécurité & Super Admins */}
           <button
-            onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }}
+            onClick={() => { setActiveTab('admins'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
-              activeTab === 'overview'
-                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
+              activeTab === 'admins'
+                ? 'border border-indigo-500/40 bg-indigo-600/20 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
-            <HeartPulse className={`w-5 h-5 ${activeTab === 'overview' ? 'text-white' : 'text-slate-400'}`} />
-            <span>Health</span>
+            <ShieldCheck className={`w-5 h-5 ${activeTab === 'admins' ? 'text-indigo-400' : 'text-slate-400'}`} />
+            <span>Sécurité & Admins</span>
           </button>
-
-          {/* Account */}
-          <button
-            onClick={() => { setActiveTab('doctors'); setIsMobileMenuOpen(false); }}
-            className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-150 ${
-              activeTab === 'doctors'
-                ? 'border border-slate-700/80 bg-slate-800/90 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
-            }`}
-          >
-            <User className={`w-5 h-5 ${activeTab === 'doctors' ? 'text-white' : 'text-slate-400'}`} />
-            <span>Account</span>
-            <span className="ml-auto text-[10px] text-slate-400 font-mono">
-              ({accounts.length})
-            </span>
-          </button>
-
-          {/* More with Dropdown */}
-          <div className="pt-1">
-            <button
-              onClick={() => setIsMoreOpen(!isMoreOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition"
-            >
-              <div className="flex items-center space-x-3.5">
-                <MoreHorizontal className="w-5 h-5 text-slate-400" />
-                <span>More</span>
-              </div>
-              {isMoreOpen ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </button>
-
-            {isMoreOpen && (
-              <div className="ml-4 pl-3 border-l border-slate-800/80 space-y-1 mt-1">
-                <button
-                  onClick={() => { setActiveTab('teleconsultation'); setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                    activeTab === 'teleconsultation'
-                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
-                  }`}
-                >
-                  <Video className="w-4 h-4 text-blue-400" />
-                  <span>Teleconsultation</span>
-                </button>
-
-                <button
-                  onClick={() => { setActiveTab('billing'); setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                    activeTab === 'billing'
-                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4 text-emerald-400" />
-                  <span>Billing</span>
-                </button>
-
-                <button
-                  onClick={() => { setActiveTab('admins'); setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                    activeTab === 'admins'
-                      ? 'border border-slate-700/80 bg-slate-800/90 text-white'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
-                  }`}
-                >
-                  <Settings className="w-4 h-4 text-purple-400" />
-                  <span>Settings</span>
-                </button>
-              </div>
-            )}
-          </div>
         </nav>
 
         {/* Sidebar Footer with Super Admin identity */}
@@ -386,17 +370,23 @@ export default function SaaSControlPanel({
                   Control Panel SaaS
                 </span>
                 <span className="text-xs text-slate-500 hidden sm:inline">
-                  {activeTab === 'appointments' && 'Supervision globale des flux & consultations du réseau'}
-                  {activeTab === 'messages' && 'Communications & alertes réseau'}
-                  {activeTab === 'overview' && 'Supervision & indicateurs de santé'}
-                  {activeTab === 'doctors' && 'Gestion des praticiens & établissements'}
-                  {activeTab === 'teleconsultation' && 'Infrastructure visio WebRTC/LiveKit'}
-                  {activeTab === 'billing' && 'Encaissements Mobile Money & plans SaaS'}
-                  {activeTab === 'admins' && 'Super Administrateurs & sécurité RLS'}
+                  {activeTab === 'overview' && 'Analyses globales, finances et indicateurs de performance SaaS'}
+                  {activeTab === 'billing' && 'Encaissements Mobile Money, plans d\'abonnement et comptabilité SaaS'}
+                  {activeTab === 'doctors' && 'Gestion de la plateforme, validation et onboarding des praticiens'}
+                  {activeTab === 'appointments' && 'Supervision globale des flux et consultations du réseau'}
+                  {activeTab === 'teleconsultation' && 'Infrastructure visio WebRTC / LiveKit SFU'}
+                  {activeTab === 'admins' && 'Super Administrateurs, contrôle d\'accès et sécurité RLS'}
+                  {activeTab === 'messages' && 'Passerelle SMS & notifications réseau'}
                 </span>
               </div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 font-brand capitalize">
-                {activeTab === 'overview' ? 'Supervision Santé' : activeTab === 'doctors' ? 'Comptes Praticiens' : activeTab === 'teleconsultation' ? 'Téléconsultation SFU' : activeTab === 'admins' ? 'Sécurité & Admins' : activeTab === 'appointments' ? 'Supervision Consultations' : activeTab}
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 font-brand">
+                {activeTab === 'overview' ? 'Analyses & Tableau de Bord SaaS' : 
+                 activeTab === 'billing' ? 'Finances & Abonnements SaaS' : 
+                 activeTab === 'doctors' ? 'Gestion Praticiens & Cabinets' : 
+                 activeTab === 'appointments' ? 'Supervision des Consultations' : 
+                 activeTab === 'teleconsultation' ? 'Infrastructure Vidéo SFU' : 
+                 activeTab === 'admins' ? 'Sécurité & Super Administrateurs' : 
+                 'Passerelle SMS & Alertes'}
               </h1>
             </div>
           </div>
@@ -597,108 +587,216 @@ export default function SaaSControlPanel({
             </div>
           )}
 
-          {/* OVERVIEW / HEALTH TAB (STYLE EXACT DE LA RECOMMANDATION VISUELLE) */}
+          {/* OVERVIEW / ANALYTICS TAB (TABLEAU DE BORD SAAS EXÉCUTIF & ANALYTICS) */}
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in duration-200">
               
-              {/* 1. HEALTH REMINDERS (Exactement comme la photo fournie) */}
-              <div>
-                <h2 className="text-base font-bold text-slate-800 mb-3 font-brand">
-                  Health reminders
-                </h2>
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex items-center space-x-4 shadow-xs">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Check className="w-5 h-5 stroke-[3]" />
+              {/* Executive Welcome & Platform Status Banner */}
+              <div className="bg-gradient-to-r from-[#0a1128] via-[#101f42] to-blue-950 rounded-3xl p-6 sm:p-7 text-white shadow-lg border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>PLATEFORME SANGO HEALTH EN DIRECT • KINSHASA</span>
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">You're up to date</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      We'll notify you when you have new health reminders
-                    </p>
+                  <h2 className="text-xl sm:text-2xl font-black font-brand tracking-tight text-white">
+                    Supervision & Analytics de l'Application
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                    Pilotage centralisé de la plateforme SaaS : analyse d'usage, suivi des finances et abonnements, modération des cabinets et santé de l'infrastructure.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setActiveTab('billing')}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center space-x-2"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    <span>Finances & Facturation</span>
+                  </button>
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition flex items-center space-x-2"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Inscrire un Praticien</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION ANALYSES D'USAGE DE L'APPLICATION */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 1. Analyse des Modes de Consultation */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-brand">Répartition des Modes de Consultation</h3>
+                      <p className="text-xs text-slate-500">Volume comparatif Cabinet Physique vs Vidéo HD</p>
+                    </div>
+                    <span className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full">
+                      Temps Réel
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Visual Bar */}
+                    <div>
+                      <div className="flex justify-between text-xs font-bold mb-1.5">
+                        <span className="text-blue-700 flex items-center space-x-1.5">
+                          <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+                          <span>Cabinet Présentiel (68%)</span>
+                        </span>
+                        <span className="text-emerald-700 flex items-center space-x-1.5">
+                          <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                          <span>Téléconsultation Vidéo (32%)</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex">
+                        <div className="bg-blue-600 h-full rounded-l-full transition-all duration-500" style={{ width: '68%' }}></div>
+                        <div className="bg-emerald-500 h-full rounded-r-full transition-all duration-500" style={{ width: '32%' }}></div>
+                      </div>
+                    </div>
+
+                    {/* Stats Highlights */}
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Présentiel</span>
+                        <span className="text-base font-black text-slate-900">68%</span>
+                        <span className="text-[10px] text-slate-500 block">En cabinet</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Téléconsult.</span>
+                        <span className="text-base font-black text-emerald-600">32%</span>
+                        <span className="text-[10px] text-slate-500 block">WebRTC SFU</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Durée Moyenne</span>
+                        <span className="text-base font-black text-blue-600">22 min</span>
+                        <span className="text-[10px] text-slate-500 block">Par consultation</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Analyse des Spécialités les Plus Sollicitées à Kinshasa */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-brand">Spécialités les Plus Demandées</h3>
+                      <p className="text-xs text-slate-500">Demande de consultations par domaine médical</p>
+                    </div>
+                    <span className="text-xs font-bold text-slate-500">Kinshasa RDC</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <span>Médecine Générale</span>
+                        <span className="font-bold text-slate-900">38%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="bg-blue-600 h-full rounded-full" style={{ width: '38%' }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <span>Pédiatrie & Santé Enfant</span>
+                        <span className="font-bold text-slate-900">24%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="bg-indigo-600 h-full rounded-full" style={{ width: '24%' }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <span>Gynécologie & Obstétrique</span>
+                        <span className="font-bold text-slate-900">18%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="bg-rose-500 h-full rounded-full" style={{ width: '18%' }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <span>Cardiologie & Vasculaire</span>
+                        <span className="font-bold text-slate-900">12%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="bg-amber-500 h-full rounded-full" style={{ width: '12%' }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <span>Dermatologie & Autres</span>
+                        <span className="font-bold text-slate-900">8%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: '8%' }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* 2. HEALTH PROFILE (Liste structurée avec pastilles colorées comme sur la photo) */}
-              <div>
-                <h2 className="text-base font-bold text-slate-800 mb-3 font-brand">
-                  Health profile
-                </h2>
-                <div className="bg-white border border-slate-200/80 rounded-2xl divide-y divide-slate-100 shadow-xs overflow-hidden">
-                  {/* Documents */}
-                  <button 
-                    onClick={() => setActiveTab('appointments')}
-                    className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition">Documents</span>
+              {/* 3. PERFORMANCE & SYSTEM HEALTH */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                      <CheckCircle className="w-4 h-4" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition" />
-                  </button>
-
-                  {/* Medical conditions */}
-                  <button 
-                    onClick={() => setActiveTab('doctors')}
-                    className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                        <Activity className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm group-hover:text-rose-600 transition">Medical conditions</span>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">Taux de Présence RDV</div>
+                      <div className="text-[10px] text-slate-500">Rappels SMS automatiques</div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition" />
-                  </button>
-
-                  {/* Medications */}
-                  <button 
-                    onClick={() => setActiveTab('billing')}
-                    className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                        <Pill className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm group-hover:text-purple-600 transition">Medications</span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition" />
-                  </button>
-
-                  {/* Allergies */}
-                  <div className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                        <ShieldAlert className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm">Allergies</span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
                   </div>
+                  <div className="text-2xl font-black text-slate-900 font-brand">94.2%</div>
+                  <div className="text-[10px] text-emerald-600 font-semibold mt-1">Seulement 5.8% de no-show</div>
+                </div>
 
-                  {/* Lifestyle */}
-                  <div className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                        <Flame className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm">Lifestyle</span>
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">Satisfaction Réseau</div>
+                      <div className="text-[10px] text-slate-500">Avis patients certifiés</div>
+                    </div>
                   </div>
+                  <div className="text-2xl font-black text-slate-900 font-brand">4.9 / 5.0</div>
+                  <div className="text-[10px] text-slate-500 mt-1">Sur 150+ avis recueillis</div>
+                </div>
 
-                  {/* Family history */}
-                  <div className="w-full p-4.5 flex items-center justify-between hover:bg-slate-50/80 transition text-left">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-11 h-11 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                        <HeartHandshake className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-slate-900 text-sm">Family history</span>
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                      <Server className="w-4 h-4" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">Supabase & RLS</div>
+                      <div className="text-[10px] text-slate-500">Base de données Cloud</div>
+                    </div>
                   </div>
+                  <div className="text-2xl font-black text-slate-900 font-brand">100%</div>
+                  <div className="text-[10px] text-emerald-600 font-semibold mt-1">Latence 38ms • RLS Actif</div>
+                </div>
+
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">Serveurs Vidéo SFU</div>
+                      <div className="text-[10px] text-slate-500">WebRTC LiveKit</div>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-slate-900 font-brand">99.98%</div>
+                  <div className="text-[10px] text-purple-600 font-semibold mt-1">Haute disponibilité</div>
                 </div>
               </div>
 
