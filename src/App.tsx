@@ -346,8 +346,8 @@ export default function SangoHealthApp() {
         </div>
       )}
 
-      {/* Header - Clean, Uncluttered, Masqué sur le Control Panel SaaS pour affichage plein écran */}
-      {currentView !== 'saas_admin' && (
+      {/* Header - Masqué sur le SaaS Admin et l'Espace Patient (qui ont leur propre barre latérale gauche) */}
+      {currentView !== 'saas_admin' && currentView !== 'dashboard' && (
         <Header
           currentView={currentView}
           setCurrentView={setCurrentView}
@@ -394,6 +394,9 @@ export default function SangoHealthApp() {
             onCancel={cancelAppointment}
             onNewBooking={() => setCurrentView('search')}
             onSavePrescription={handleSavePrescription}
+            currentUser={currentUser}
+            onReturnHome={() => setCurrentView('home')}
+            onLogout={handleLogout}
           />
         )}
 
@@ -483,8 +486,8 @@ export default function SangoHealthApp() {
         />
       )}
 
-      {/* Clean Footer - Masqué sur le SaaS Control Panel */}
-      {currentView !== 'saas_admin' && (
+      {/* Clean Footer - Masqué sur le SaaS Control Panel et l'Espace Patient */}
+      {currentView !== 'saas_admin' && currentView !== 'dashboard' && (
         <Footer
           setCurrentView={setCurrentView}
           onOpenAuthForDoctor={() => handleOpenAuth('doctor')}
