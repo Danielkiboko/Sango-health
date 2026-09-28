@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building2, Video, AlertCircle, Star, MapPin, Map, List } from 'lucide-react';
-import { Doctor } from '../types';
+import { ArrowLeft, Building2, Video, AlertCircle, Star, MapPin, Map, List, ShieldCheck, Users } from 'lucide-react';
+import { Doctor, UserProfile } from '../types';
 import KinshasaInteractiveMap from '../components/KinshasaInteractiveMap';
 import { useLanguage } from '../context/LanguageContext';
 import { formatSpecialty, formatNextSlot } from '../lib/i18n';
@@ -11,6 +11,8 @@ interface SearchViewProps {
   initialLocation: string;
   onSelectDoctor: (doctor: Doctor) => void;
   onBack: () => void;
+  currentUser?: UserProfile | null;
+  onNavigateAdmin?: () => void;
 }
 
 export default function SearchView({
@@ -18,7 +20,9 @@ export default function SearchView({
   initialSpecialty,
   initialLocation,
   onSelectDoctor,
-  onBack
+  onBack,
+  currentUser,
+  onNavigateAdmin
 }: SearchViewProps) {
   const { t } = useLanguage();
   const [filterSpecialty, setFilterSpecialty] = useState(initialSpecialty || '');
@@ -205,12 +209,30 @@ export default function SearchView({
                       <span className="block text-[10px] text-slate-400 uppercase font-bold">{t('next_slot')}</span>
                       <span className="text-xs font-bold text-emerald-600">{formatNextSlot(doc.nextSlot, t)}</span>
                     </div>
-                    <button 
-                      onClick={() => onSelectDoctor(doc)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/20 transition text-xs w-full sm:w-auto"
-                    >
-                      {t('book_appointment')}
-                    </button>
+                    {currentUser?.role === 'admin' ? (
+                      <button 
+                        onClick={() => onNavigateAdmin ? onNavigateAdmin() : onSelectDoctor(doc)}
+                        className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold px-6 py-3 rounded-xl transition text-xs flex items-center space-x-2 w-full sm:w-auto shadow-sm"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Superviser (C-Panel)</span>
+                      </button>
+                    ) : currentUser?.role === 'doctor' ? (
+                      <button 
+                        onClick={() => onSelectDoctor(doc)}
+                        className="bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white font-bold px-6 py-3 rounded-xl transition text-xs flex items-center space-x-2 w-full sm:w-auto shadow-sm"
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>Fiche Confrère</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => onSelectDoctor(doc)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/20 transition text-xs w-full sm:w-auto"
+                      >
+                        {t('book_appointment')}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -8,7 +8,7 @@ interface HeaderProps {
   currentView: string;
   setCurrentView: (view: string) => void;
   currentUser: UserProfile | null;
-  onOpenAuthModal: () => void;
+  onOpenAuthModal: (portal?: 'patient' | 'doctor' | 'admin') => void;
   onLogout: () => void;
 }
 
@@ -23,9 +23,10 @@ export default function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Brand Logo - Official Blue & White */}
+          
+          {/* Brand Logo */}
           <div 
             className="flex items-center space-x-3 cursor-pointer group py-1" 
             onClick={() => setCurrentView('home')}
@@ -37,139 +38,154 @@ export default function Header({
             />
           </div>
 
-          {/* Desktop Navigation Links */}
+          {/* ========================================================= */}
+          {/* NAVIGATION DESKTOP : STRICTEMENT SPÉCIFIQUE À CHAQUE RÔLE */}
+          {/* ========================================================= */}
           <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
+            {/* 1. LIEN ACCUEIL (Commun à tous) */}
             <button 
               onClick={() => setCurrentView('home')} 
-              className={`hover:text-blue-600 transition ${currentView === 'home' ? 'text-blue-600 font-semibold' : ''}`}
+              className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'home' ? 'text-blue-600 font-bold' : ''}`}
             >
-              {t('nav_home')}
+              <Home className="w-4 h-4" />
+              <span>{t('nav_home')}</span>
             </button>
-            
-            {/* "Trouver un médecin" : Uniquement pour les visiteurs non connectés ou patients */}
-            {(!currentUser || currentUser.role === 'patient') && (
-              <button 
-                onClick={() => setCurrentView('search')} 
-                className={`hover:text-blue-600 transition ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
-              >
-                {t('nav_find_doctor')}
-              </button>
-            )}
 
-            {/* Pour les soignants : Réseau Confrères (annuaire professionnel pour orientation patient) */}
-            {currentUser?.role === 'doctor' && (
-              <button 
-                onClick={() => setCurrentView('search')} 
-                className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'search' ? 'text-blue-600 font-semibold' : ''}`}
-                title="Consulter l'annuaire des confrères pour adresser un patient"
-              >
-                <Users className="w-4 h-4 text-blue-600" />
-                <span>Réseau Confrères</span>
-              </button>
-            )}
-
-            {/* Espace Dossier Patient */}
-            {currentUser?.role === 'patient' && (
-              <button 
-                onClick={() => setCurrentView('dashboard')} 
-                className={`hover:text-blue-600 transition ${currentView === 'dashboard' ? 'text-blue-600 font-semibold' : ''}`}
-              >
-                {t('nav_my_records')}
-              </button>
-            )}
-
-            {/* Espace Médecin */}
-            {currentUser?.role === 'doctor' && (
-              <button 
-                onClick={() => setCurrentView('doctor_portal')} 
-                className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'doctor_portal' ? 'text-blue-600 font-bold' : ''}`}
-              >
-                <Stethoscope className="w-4 h-4 text-blue-600" />
-                <span>Mon Espace Cabinet</span>
-              </button>
-            )}
-
-            {currentUser?.role === 'pharmacy' && (
-              <button 
-                onClick={() => setCurrentView('pharmacy_portal')} 
-                className={`hover:text-blue-600 transition ${currentView === 'pharmacy_portal' ? 'text-blue-600 font-semibold' : ''}`}
-              >
-                {t('nav_pharmacy_portal')}
-              </button>
-            )}
-
+            {/* 2. NAVIGATION SPÉCIFIQUE SUPER ADMIN */}
             {currentUser?.role === 'admin' && (
               <button 
                 onClick={() => setCurrentView('saas_admin')} 
-                className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'saas_admin' ? 'text-blue-600 font-bold' : ''}`}
+                className={`hover:text-blue-600 transition flex items-center space-x-2 py-1.5 px-3 rounded-xl border ${
+                  currentView === 'saas_admin' 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold shadow-xs' 
+                    : 'border-transparent text-slate-700 hover:bg-slate-50'
+                }`}
+                title="Accéder à la console de gestion SaaS et d'audit"
               >
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>{t('nav_cpanel')}</span>
+                <span>Console C-Panel SaaS</span>
               </button>
+            )}
+
+            {/* 3. NAVIGATION SPÉCIFIQUE MÉDECIN / PRATICIEN */}
+            {currentUser?.role === 'doctor' && (
+              <>
+                <button 
+                  onClick={() => setCurrentView('doctor_portal')} 
+                  className={`hover:text-blue-600 transition flex items-center space-x-2 py-1.5 px-3 rounded-xl border ${
+                    currentView === 'doctor_portal' 
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold shadow-xs' 
+                      : 'border-transparent text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Stethoscope className="w-4 h-4 text-blue-600" />
+                  <span>Mon Espace Cabinet</span>
+                </button>
+
+                <button 
+                  onClick={() => setCurrentView('search')} 
+                  className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'search' ? 'text-blue-600 font-bold' : ''}`}
+                  title="Consulter l'annuaire des confrères pour adresser un patient"
+                >
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>Réseau Confrères</span>
+                </button>
+              </>
+            )}
+
+            {/* 4. NAVIGATION SPÉCIFIQUE PATIENT */}
+            {currentUser?.role === 'patient' && (
+              <>
+                <button 
+                  onClick={() => setCurrentView('search')} 
+                  className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'search' ? 'text-blue-600 font-bold' : ''}`}
+                >
+                  <Search className="w-4 h-4" />
+                  <span>{t('nav_find_doctor')}</span>
+                </button>
+
+                <button 
+                  onClick={() => setCurrentView('dashboard')} 
+                  className={`hover:text-blue-600 transition flex items-center space-x-2 py-1.5 px-3 rounded-xl border ${
+                    currentView === 'dashboard' 
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold shadow-xs' 
+                      : 'border-transparent text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <span>{t('nav_my_records')}</span>
+                </button>
+              </>
+            )}
+
+            {/* 5. NAVIGATION VISITEUR NON CONNECTÉ */}
+            {!currentUser && (
+              <>
+                <button 
+                  onClick={() => setCurrentView('search')} 
+                  className={`hover:text-blue-600 transition flex items-center space-x-1.5 ${currentView === 'search' ? 'text-blue-600 font-bold' : ''}`}
+                >
+                  <Search className="w-4 h-4" />
+                  <span>{t('nav_find_doctor')}</span>
+                </button>
+
+                <button 
+                  onClick={() => onOpenAuthModal('doctor')} 
+                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600"
+                  title="Connexion praticiens et cabinets médicaux"
+                >
+                  <Stethoscope className="w-4 h-4 text-blue-600" />
+                  <span>Espace Soignants</span>
+                </button>
+
+                <button 
+                  onClick={() => onOpenAuthModal('admin')} 
+                  className="hover:text-blue-600 transition flex items-center space-x-1.5 text-slate-600"
+                  title="Accès direction et administration"
+                >
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Espace Admin</span>
+                </button>
+              </>
             )}
           </nav>
 
-          {/* Right Section: Language Selector + Mobile & Desktop Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* SÉLECTEUR DE LANGUE (6 LANGUES : FR, EN, LN, SW, KG, TS) */}
+          {/* ========================================================= */}
+          {/* SECTION DROITE : SÉLECTEUR DE LANGUE + PROFIL / LOGIN */}
+          {/* ========================================================= */}
+          <div className="flex items-center space-x-3">
             <LanguageSelector />
 
-            {/* BOUTON C-PANEL DÉDIÉ (Visible sur mobile ET ordinateur pour les Super Admins) */}
-            {currentUser?.role === 'admin' && (
-              <button
-                onClick={() => setCurrentView('saas_admin')}
-                className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl font-bold text-xs transition shadow-sm ${
-                  currentView === 'saas_admin'
-                    ? 'bg-blue-600 text-white shadow-blue-600/30'
-                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                }`}
-                title="Accéder au SaaS Control Panel"
-              >
-                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                <span className="font-bold">C-Panel</span>
-              </button>
-            )}
-
-            {currentUser?.role === 'patient' && (
-              <button
-                onClick={() => setCurrentView('dashboard')}
-                className={`md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-xl font-bold text-xs transition ${
-                  currentView === 'dashboard'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Dossier</span>
-              </button>
-            )}
-
             {currentUser ? (
-              <div className="flex items-center space-x-2 bg-slate-50 px-2.5 sm:px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+              /* Badge Profil utilisateur connecté (Sans bouton C-Panel doublon) */
+              <div className="flex items-center space-x-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 shadow-xs">
                 <button 
                   onClick={() => {
                     if (currentUser.role === 'admin') setCurrentView('saas_admin');
                     else if (currentUser.role === 'doctor') setCurrentView('doctor_portal');
-                    else if (currentUser.role === 'pharmacy') setCurrentView('pharmacy_portal');
                     else setCurrentView('dashboard');
                   }}
-                  className="flex items-center space-x-2 text-left group"
+                  className="flex items-center space-x-2.5 text-left group"
                   title="Accéder à mon espace"
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:bg-blue-700 transition">
                     {currentUser.name.charAt(0)}
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[90px] sm:max-w-[130px]">
+                    <div className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[130px]">
                       {currentUser.name.split(' ')[0]}
                     </div>
-                    <div className="text-[9px] sm:text-[10px] text-blue-600 font-semibold uppercase tracking-wider flex items-center space-x-1">
+                    <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider flex items-center space-x-1">
                       {currentUser.role === 'admin' ? (
                         <>
                           <ShieldCheck className="w-3 h-3 text-blue-600 shrink-0 inline" />
                           <span className="font-bold">Super Admin</span>
                         </>
-                      ) : currentUser.role === 'doctor' ? 'Médecin' : currentUser.role === 'pharmacy' ? 'Pharmacie' : 'Patient'}
+                      ) : currentUser.role === 'doctor' ? (
+                        <span>Médecin</span>
+                      ) : (
+                        <span>Patient</span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -177,15 +193,16 @@ export default function Header({
                 <button 
                   onClick={onLogout}
                   title={t('nav_logout')}
-                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition ml-1"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 transition ml-1"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
+              /* Bouton de connexion pour visiteur */
               <button 
-                onClick={onOpenAuthModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-1.5 sm:space-x-2"
+                onClick={() => onOpenAuthModal('patient')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 sm:py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition text-xs sm:text-sm flex items-center space-x-2"
               >
                 <User className="w-4 h-4" />
                 <span>{t('nav_signin')}</span>
@@ -195,7 +212,9 @@ export default function Header({
         </div>
       </header>
 
-      {/* Barre de navigation mobile en bas d'écran (Smartphones) */}
+      {/* ========================================================= */}
+      {/* NAVIGATION MOBILE STRICTEMENT SPÉCIFIQUE AU RÔLE */}
+      {/* ========================================================= */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200 px-2 py-2 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setCurrentView('home')}
@@ -207,33 +226,8 @@ export default function Header({
           <span className="text-[10px]">{t('nav_home')}</span>
         </button>
 
-        {/* Recherche praticien : Uniquement pour les visiteurs non connectés ou patients */}
-        {(!currentUser || currentUser.role === 'patient') && (
-          <button
-            onClick={() => setCurrentView('search')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Search className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">{t('nav_find_doctor')}</span>
-          </button>
-        )}
-
-        {/* Confrères : Pour les médecins */}
-        {currentUser?.role === 'doctor' && (
-          <button
-            onClick={() => setCurrentView('search')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users className="w-5 h-5 mb-0.5 text-blue-600" />
-            <span className="text-[10px]">Confrères</span>
-          </button>
-        )}
-
-        {currentUser?.role === 'admin' ? (
+        {/* Menu mobile spécifique Super Admin */}
+        {currentUser?.role === 'admin' && (
           <button
             onClick={() => setCurrentView('saas_admin')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
@@ -243,34 +237,79 @@ export default function Header({
             <ShieldCheck className="w-5 h-5 mb-0.5 text-blue-600" />
             <span className="text-[10px] font-bold text-blue-700">C-Panel</span>
           </button>
-        ) : currentUser?.role === 'doctor' ? (
-          <button
-            onClick={() => setCurrentView('doctor_portal')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'doctor_portal' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Stethoscope className="w-5 h-5 mb-0.5 text-blue-600" />
-            <span className="text-[10px] font-bold">Mon Cabinet</span>
-          </button>
-        ) : currentUser?.role === 'patient' ? (
-          <button
-            onClick={() => setCurrentView('dashboard')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'dashboard' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <FileText className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">{t('nav_my_records')}</span>
-          </button>
-        ) : (
-          <button
-            onClick={onOpenAuthModal}
-            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-blue-600 transition"
-          >
-            <User className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">{t('nav_signin')}</span>
-          </button>
+        )}
+
+        {/* Menu mobile spécifique Médecin */}
+        {currentUser?.role === 'doctor' && (
+          <>
+            <button
+              onClick={() => setCurrentView('doctor_portal')}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                currentView === 'doctor_portal' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Stethoscope className="w-5 h-5 mb-0.5 text-blue-600" />
+              <span className="text-[10px] font-bold">Mon Cabinet</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('search')}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Users className="w-5 h-5 mb-0.5 text-blue-600" />
+              <span className="text-[10px]">Confrères</span>
+            </button>
+          </>
+        )}
+
+        {/* Menu mobile spécifique Patient */}
+        {currentUser?.role === 'patient' && (
+          <>
+            <button
+              onClick={() => setCurrentView('search')}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Search className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px]">{t('nav_find_doctor')}</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                currentView === 'dashboard' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <FileText className="w-5 h-5 mb-0.5 text-blue-600" />
+              <span className="text-[10px] font-bold">{t('nav_my_records')}</span>
+            </button>
+          </>
+        )}
+
+        {/* Menu mobile Visiteur non connecté */}
+        {!currentUser && (
+          <>
+            <button
+              onClick={() => setCurrentView('search')}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+                currentView === 'search' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Search className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px]">{t('nav_find_doctor')}</span>
+            </button>
+
+            <button
+              onClick={() => onOpenAuthModal('patient')}
+              className="flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-500 hover:text-blue-600 transition"
+            >
+              <User className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px]">{t('nav_signin')}</span>
+            </button>
+          </>
         )}
       </nav>
     </>

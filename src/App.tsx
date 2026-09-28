@@ -287,7 +287,10 @@ export default function SangoHealthApp() {
           currentView={currentView}
           setCurrentView={setCurrentView}
           currentUser={currentUser}
-          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenAuthModal={(portal) => {
+            if (portal) setAuthModalRole(portal);
+            setIsAuthModalOpen(true);
+          }}
           onLogout={handleLogout}
         />
       )}
@@ -304,6 +307,8 @@ export default function SangoHealthApp() {
             doctors={doctors}
             onSelectDoctor={handleSelectDoctor}
             onNavigateSearch={() => setCurrentView('search')}
+            currentUser={currentUser}
+            onNavigateAdmin={() => setCurrentView('saas_admin')}
           />
         )}
 
@@ -314,6 +319,8 @@ export default function SangoHealthApp() {
             initialLocation={searchLocation}
             onSelectDoctor={handleSelectDoctor}
             onBack={() => setCurrentView('home')}
+            currentUser={currentUser}
+            onNavigateAdmin={() => setCurrentView('saas_admin')}
           />
         )}
 
@@ -399,6 +406,7 @@ export default function SangoHealthApp() {
         <AuthModal 
           onClose={() => setIsAuthModalOpen(false)}
           onLogin={handleLogin}
+          initialPortal={authModalRole as any}
         />
       )}
 

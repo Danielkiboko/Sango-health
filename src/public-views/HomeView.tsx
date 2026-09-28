@@ -7,6 +7,7 @@ import {
   Stethoscope, 
   HeartPulse, 
   User, 
+  Users,
   ShieldCheck, 
   Sparkles,
   Video,
@@ -14,7 +15,7 @@ import {
   Clock,
   Heart
 } from 'lucide-react';
-import { Doctor } from '../types';
+import { Doctor, UserProfile } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { formatSpecialty, formatNextSlot } from '../lib/i18n';
 
@@ -27,6 +28,8 @@ interface HomeViewProps {
   doctors: Doctor[];
   onSelectDoctor: (doctor: Doctor) => void;
   onNavigateSearch: () => void;
+  currentUser?: UserProfile | null;
+  onNavigateAdmin?: () => void;
 }
 
 export default function HomeView({
@@ -37,7 +40,9 @@ export default function HomeView({
   onSearchSubmit,
   doctors,
   onSelectDoctor,
-  onNavigateSearch
+  onNavigateSearch,
+  currentUser,
+  onNavigateAdmin
 }: HomeViewProps) {
   const { t } = useLanguage();
 
@@ -224,12 +229,30 @@ export default function HomeView({
                       <span className="block text-[10px] text-slate-400 uppercase font-bold">{t('next_slot')}</span>
                       <span className="text-xs font-bold text-emerald-600">{formatNextSlot(doc.nextSlot, t)}</span>
                     </div>
-                    <button 
-                      onClick={() => onSelectDoctor(doc)}
-                      className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-semibold px-4 py-2 rounded-xl text-xs transition"
-                    >
-                      {t('book_appointment')}
-                    </button>
+                    {currentUser?.role === 'admin' ? (
+                      <button 
+                        onClick={() => onNavigateAdmin ? onNavigateAdmin() : onSelectDoctor(doc)}
+                        className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-semibold px-4 py-2 rounded-xl text-xs transition flex items-center space-x-1"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Superviser</span>
+                      </button>
+                    ) : currentUser?.role === 'doctor' ? (
+                      <button 
+                        onClick={() => onSelectDoctor(doc)}
+                        className="bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white font-semibold px-4 py-2 rounded-xl text-xs transition flex items-center space-x-1"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Fiche Confrère</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => onSelectDoctor(doc)}
+                        className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-semibold px-4 py-2 rounded-xl text-xs transition"
+                      >
+                        {t('book_appointment')}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

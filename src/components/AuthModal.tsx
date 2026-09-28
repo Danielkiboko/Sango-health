@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, KeyRound, User, Stethoscope, ShieldCheck } from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
-import { supabase } from '../lib/supabase';
+import { X, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, User, Stethoscope, ShieldCheck } from 'lucide-react';
+import { UserProfile } from '../types';
 import { dataService } from '../lib/dataService';
 import SetPasswordModal from './SetPasswordModal';
 import { useLanguage } from '../context/LanguageContext';
 
 interface AuthModalProps {
+  initialPortal?: 'patient' | 'doctor' | 'admin';
   onClose: () => void;
   onLogin: (user: UserProfile) => void;
 }
 
-export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
+export default function AuthModal({ initialPortal = 'patient', onClose, onLogin }: AuthModalProps) {
   const { t } = useLanguage();
-  const [selectedPortal, setSelectedPortal] = useState<'patient' | 'doctor' | 'admin'>('patient');
+  const [selectedPortal, setSelectedPortal] = useState<'patient' | 'doctor' | 'admin'>(initialPortal);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isSettingPasswordOpen, setIsSettingPasswordOpen] = useState(false);
   const [infoMessage, setInfoMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const SUPER_ADMIN_EMAILS = ['danielkiboko218@gmail.com', 'kibongef15@gmail.com'];
+  const isSuperAdminEmail = (emailStr: string) => SUPER_ADMIN_EMAILS.includes(emailStr.trim().toLowerCase());
 
   // Réinitialisation du mot de passe (Mot de passe oublié)
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
@@ -35,7 +39,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     const res = await dataService.sendAdminInvite(email.trim());
     if (res.success) {
       setInfoMessage({ 
-        text: `Un lien sécurisé de réinitialisation a été envoyé à ${email.trim()}. Vérifiez vos messages et vos spams. Vous pouvez également définir votre mot de passe directement via le bouton ci-dessous.`, 
+        text: `Un lien sécurisé de réinitialisation a été envoyé à ${email.trim()}. Vérifiez vos messages ou définissez votre mot de passe directement.`, 
         type: 'success' 
       });
     } else {
@@ -44,10 +48,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setIsSubmitting(false);
   };
 
-  const SUPER_ADMIN_EMAILS = ['danielkiboko218@gmail.com', 'kibongef15@gmail.com'];
-  const isSuperAdminEmail = (emailStr: string) => SUPER_ADMIN_EMAILS.includes(emailStr.trim().toLowerCase());
-
-  // Connexion avec séparation stricte des dossiers (Patient, Praticien, Admin)
+  // Connexion avec séparation stricte des rôles (Patient, Praticien, Admin)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -56,18 +57,18 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
     setInfoMessage(null);
     const cleanEmail = email.trim().toLowerCase();
 
-    // SÉCURITÉ ABSOLUE : Vérification que l'email Admin ne peut JAMAIS devenir Patient ou Médecin
+    // SÉCURITÉ STRICTE : L'email Admin ne peut JAMAIS se connecter en tant que Patient ou Médecin
     if (isSuperAdminEmail(cleanEmail) && selectedPortal !== 'admin') {
       setSelectedPortal('admin');
       setInfoMessage({
-        text: "🔒 Sécurité : Cette adresse est enregistrée comme Super Administrateur. Vous ne pouvez pas vous connecter en tant que patient ou praticien avec cet email. Veuillez saisir votre mot de passe administrateur.",
+        text: "🔒 Sécurité : Cette adresse est enregistrée comme Super Administrateur. Votre accès est strictement dirigé vers la Console Admin. Veuillez saisir votre mot de passe.",
         type: 'error'
       });
       setIsSubmitting(false);
       return;
     }
 
-    // 1. DOSSIER PATIENT (Réservé exclusivement aux patients)
+    // 1. ESPACE PATIENT (Réservé exclusivement aux patients)
     if (selectedPortal === 'patient') {
       if (isSuperAdminEmail(cleanEmail)) {
         setInfoMessage({
@@ -90,21 +91,25 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
         window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
       }
 
-      const displayName = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+      let patientName = fullName.trim();
+      if (!patientName) {
+        const namePart = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+        patientName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      }
 
       onLogin({
-        name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+        name: patientName,
         role: 'patient',
         email: email.trim()
       });
       return;
     }
 
-    // 2. DOSSIER PRATICIEN / PRO (Réservé aux soignants)
+    // 2. ESPACE MÉDECIN & CABINET (Réservé aux soignants)
     if (selectedPortal === 'doctor') {
       if (isSuperAdminEmail(cleanEmail)) {
         setInfoMessage({
-          text: "Accès refusé. Cette adresse email appartient à un Super Administrateur.",
+          text: "Accès refusé. Cette adresse email appartient à la direction de SangO Health. Veuillez utiliser l'onglet Super Admin.",
           type: 'error'
         });
         setIsSubmitting(false);
@@ -123,8 +128,24 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
         window.localStorage.setItem(`sango_pwd_${cleanEmail}`, password);
       }
 
+      // Recherche du nom réel du praticien dans la base de données
+      let doctorName = fullName.trim();
+      if (!doctorName) {
+        try {
+          const saasAccs = await dataService.getSaaSAccounts();
+          const found = saasAccs.find(a => a.email.toLowerCase() === cleanEmail);
+          if (found) doctorName = found.name;
+        } catch {}
+      }
+
+      if (!doctorName) {
+        const namePart = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+        const cap = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        doctorName = cap.startsWith('Dr') ? cap : `Dr. ${cap}`;
+      }
+
       onLogin({
-        name: cleanEmail.includes('marie') ? 'Dr. Marie Laurent' : 'Dr. Praticien Partenaire',
+        name: doctorName,
         role: 'doctor',
         email: email.trim()
       });
@@ -151,7 +172,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
         return;
       }
 
-      // Vérification du mot de passe propre à cet administrateur spécifique
+      // Vérification sécurisée du mot de passe propre à cet administrateur
       const check = await dataService.verifyAdminPassword(email, password);
       if (!check.valid) {
         setInfoMessage({ 
@@ -191,20 +212,20 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             />
           </div>
           <h2 className="font-brand text-2xl font-black text-slate-900">
-            {isForgotPassword ? 'Mot de passe oublié' : 'Connexion SangO Health'}
+            {isForgotPassword ? 'Mot de passe oublié' : 'Espace de Connexion'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {isForgotPassword 
               ? 'Recevez un lien de réinitialisation sécurisé par email' 
               : selectedPortal === 'patient' 
-                ? 'Mon Dossier Santé & Historique des Rendez-vous'
+                ? 'Accédez à vos rendez-vous et votre dossier médical'
                 : selectedPortal === 'doctor'
-                  ? 'Gestion de cabinet & Téléconsultations'
-                  : 'Console Super Admin (Daniel & François)'}
+                  ? 'Gestion de cabinet, téléconsultations et ordonnances'
+                  : 'Console Direction & Supervision SaaS'}
           </p>
         </div>
 
-        {/* Séparation claire des dossiers via des onglets visuels */}
+        {/* Onglets des 3 profils distincts */}
         {!isForgotPassword && (
           <div className="flex bg-slate-100 p-1 rounded-2xl mb-5 border border-slate-200">
             <button
@@ -220,7 +241,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                 setSelectedPortal('patient'); 
                 setInfoMessage(null); 
               }}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
                 selectedPortal === 'patient' 
                   ? 'bg-white text-blue-700 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -229,6 +250,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               <User className="w-3.5 h-3.5" />
               <span>{t('auth_tab_patient')}</span>
             </button>
+
             <button
               type="button"
               onClick={() => { 
@@ -242,7 +264,7 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                 setSelectedPortal('doctor'); 
                 setInfoMessage(null); 
               }}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
                 selectedPortal === 'doctor' 
                   ? 'bg-white text-blue-700 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -251,10 +273,11 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               <Stethoscope className="w-3.5 h-3.5" />
               <span>{t('auth_tab_doctor')}</span>
             </button>
+
             <button
               type="button"
               onClick={() => { setSelectedPortal('admin'); setInfoMessage(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
                 selectedPortal === 'admin' 
                   ? 'bg-white text-blue-700 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -324,21 +347,9 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               disabled={isSubmitting || !email.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2"
             >
-              <KeyRound className="w-4 h-4" />
-              <span>{isSubmitting ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}</span>
+              <span>Envoyer le lien de réinitialisation</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
-
-            {email.trim() && (
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsSettingPasswordOpen(true)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition"
-                >
-                  Ou définir mon mot de passe directement
-                </button>
-              </div>
-            )}
 
             <div className="text-center pt-2">
               <button
@@ -355,14 +366,35 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
             </div>
           </form>
         ) : (
-          /* FORMULAIRE CONNEXION */
+          /* FORMULAIRE CONNEXION SPÉCIFIQUE AU RÔLE */
           <form onSubmit={handleLoginSubmit} className="space-y-4">
+            {/* Nom optionnel pour nouveau patient ou médecin */}
+            {selectedPortal !== 'admin' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {selectedPortal === 'doctor' ? 'Nom du Praticien (optionnel)' : 'Nom Complet (optionnel si nouveau)'}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={selectedPortal === 'doctor' ? "Ex: Dr. Christian Mwamba" : "Ex: Jean Kalala"}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 {selectedPortal === 'patient' 
                   ? 'Email Patient' 
                   : selectedPortal === 'doctor' 
-                    ? 'Email Professionnel' 
+                    ? 'Email Professionnel Cabinet' 
                     : 'Email Super Admin'}
               </label>
               <div className="relative">
@@ -395,32 +427,16 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   {t('auth_password')}
                 </label>
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!email.trim()) {
-                        setInfoMessage({ text: "Veuillez d'abord renseigner votre adresse email.", type: 'error' });
-                        return;
-                      }
-                      setIsSettingPasswordOpen(true);
-                    }}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
-                  >
-                    {t('auth_set_pwd')}
-                  </button>
-                  <span className="text-slate-300">•</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      setInfoMessage(null);
-                    }}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 transition"
-                  >
-                    {t('auth_forgot')}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setInfoMessage(null);
+                  }}
+                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
+                >
+                  Mot de passe oublié ?
+                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -441,7 +457,13 @@ export default function AuthModal({ onClose, onLogin }: AuthModalProps) {
               disabled={isSubmitting || !email.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition text-sm flex items-center justify-center space-x-2"
             >
-              <span>{t('auth_submit')}</span>
+              <span>
+                {selectedPortal === 'admin'
+                  ? 'Accéder à la Console Super Admin'
+                  : selectedPortal === 'doctor'
+                    ? 'Accéder à mon Espace Cabinet'
+                    : 'Accéder à mon Espace Patient'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
