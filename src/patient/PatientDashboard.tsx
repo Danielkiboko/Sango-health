@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { messagingService, MedicalMessage, ConversationSummary } from '../lib/messagingService';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -114,9 +115,90 @@ export default function PatientDashboard({
 
   const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(null);
   const [activeVideoCallApp, setActiveVideoCallApp] = useState<Appointment | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  // Messagerie Médicale Temps Réel (Patient <-> Médecins)
+  const patientName = currentUser?.name || 'Kiboko Daniel';
+  const [conversations, setConversations] = useState<ConversationSummary[]>(() => 
+    messagingService.getConversationsForUser('patient', patientName)
+  );
+  const [activeConversationId, setActiveConversationId] = useState<string>(() => {
+    const list = messagingService.getConversationsForUser('patient', patientName);
+    return list[0]?.id || 'conv_kiboko_daniel_dr_marie_laurent';
+  });
+  const [chatMessages, setChatMessages] = useState<MedicalMessage[]>(() =>
+    messagingService.getMessagesByConversation(activeConversationId)
+  );
   const [replyText, setReplyText] = useState('');
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [newChatDoctorName, setNewChatDoctorName] = useState(doctors[0]?.name || 'Dr. Marie Laurent');
+  const [newChatInitialText, setNewChatInitialText] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Synchronisation temps réel des messages entrants (multi-onglets et Supabase)
+  useEffect(() => {
+    const unsubscribe = messagingService.subscribe((msg) => {
+      setConversations(messagingService.getConversationsForUser('patient', patientName));
+      if (msg.conversationId === activeConversationId) {
+        setChatMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [activeConversationId, patientName]);
+
+  useEffect(() => {
+    setChatMessages(messagingService.getMessagesByConversation(activeConversationId));
+    messagingService.markConversationAsRead(activeConversationId, 'patient');
+    setConversations(messagingService.getConversationsForUser('patient', patientName));
+  }, [activeConversationId, patientName]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const handleSendPatientMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!replyText.trim()) return;
+
+    const currentConv = conversations.find(c => c.id === activeConversationId);
+    const doctorName = currentConv?.doctorName || 'Dr. Marie Laurent';
+
+    const sent = messagingService.sendMessage({
+      senderRole: 'patient',
+      senderName: patientName,
+      recipientName: doctorName,
+      text: replyText.trim(),
+      conversationId: activeConversationId
+    });
+
+    setChatMessages(prev => {
+      if (prev.some(m => m.id === sent.id)) return prev;
+      return [...prev, sent];
+    });
+    setConversations(messagingService.getConversationsForUser('patient', patientName));
+    setReplyText('');
+  };
+
+  const handleStartNewConversation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChatInitialText.trim()) return;
+
+    const convId = messagingService.generateConversationId(patientName, newChatDoctorName);
+    const sent = messagingService.sendMessage({
+      senderRole: 'patient',
+      senderName: patientName,
+      recipientName: newChatDoctorName,
+      text: newChatInitialText.trim(),
+      conversationId: convId
+    });
+
+    setActiveConversationId(convId);
+    setChatMessages([sent]);
+    setConversations(messagingService.getConversationsForUser('patient', patientName));
+    setIsNewChatModalOpen(false);
+    setNewChatInitialText('');
+  };
 
   // Health Profile Modal Details
   const [activeProfileModal, setActiveProfileModal] = useState<
@@ -178,7 +260,7 @@ export default function PatientDashboard({
   const past = appointments.filter(a => a.status === 'Annulé' || a.status === 'Terminé');
   const prescriptionApps = appointments.filter(a => !!a.prescription);
   const videoApps = upcoming.filter(a => a.type.includes('Vidéo'));
-  const unreadCount = messages.filter(m => !m.isRead).length;
+  const unreadCount = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -865,100 +947,272 @@ export default function PatientDashboard({
               ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'messages' && (
             <div
-              className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden flex flex-col md:flex-row"
-              style={{ minHeight: 520 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row"
+              style={{ minHeight: 600, maxHeight: 680 }}
             >
-              <div className="w-full md:w-2/5 border-r border-slate-100 bg-slate-50 flex flex-col">
-                <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                  <h3 className="font-bold text-slate-800 text-sm">Boîte de réception</h3>
-                  {unreadCount > 0 && <span className="text-xs text-blue-600 font-bold">{unreadCount} non lu(s)</span>}
+              {/* Colonne gauche : Liste des conversations */}
+              <div className="w-full md:w-2/5 border-r border-slate-200 bg-slate-50 flex flex-col">
+                <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm">Discussions Médicales</h3>
+                    <p className="text-[10px] text-slate-400">Échanges directs avec vos praticiens</p>
+                  </div>
+                  <button
+                    onClick={() => setIsNewChatModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow-sm transition"
+                    title="Démarrer une nouvelle discussion"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Nouveau</span>
+                  </button>
                 </div>
-                <div className="overflow-y-auto flex-1">
-                  {messages.length === 0 ? (
+
+                <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+                  {conversations.length === 0 ? (
                     <div className="p-8 text-center text-slate-400 text-xs">
                       <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      Aucun message. Les communications avec vos médecins s'afficheront ici.
+                      Aucune discussion ouverte. Cliquez sur "+ Nouveau" pour écrire à un praticien.
                     </div>
                   ) : (
-                    messages.map(msg => (
-                      <button
-                        key={msg.id}
-                        onClick={() => {
-                          setSelectedMessage(msg);
-                          setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, isRead: true } : m)));
-                        }}
-                        className={`w-full text-left p-4 border-b border-slate-100 hover:bg-slate-100 transition ${
-                          selectedMessage?.id === msg.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                        } ${!msg.isRead ? 'border-l-4 border-l-blue-400 font-bold' : ''}`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white shrink-0 ${
-                              !msg.isRead ? 'bg-blue-600' : 'bg-slate-300'
-                            }`}
-                          >
-                            {msg.avatar}
+                    conversations.map(conv => {
+                      const isSelected = activeConversationId === conv.id;
+                      const initials = conv.doctorName
+                        .replace('Dr.', '')
+                        .trim()
+                        .split(' ')
+                        .map(n => n[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase();
+
+                      return (
+                        <button
+                          key={conv.id}
+                          onClick={() => {
+                            setActiveConversationId(conv.id);
+                          }}
+                          className={`w-full text-left p-3.5 transition flex items-start space-x-3 ${
+                            isSelected 
+                              ? 'bg-blue-50/80 border-l-4 border-l-blue-600' 
+                              : 'hover:bg-slate-100/70 bg-white'
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 to-blue-500 text-white font-bold flex items-center justify-center shrink-0 shadow-sm text-xs">
+                            {initials || 'DR'}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex justify-between items-center">
-                              <span className={`text-xs truncate ${!msg.isRead ? 'font-black text-slate-900' : 'text-slate-600'}`}>
-                                {msg.sender}
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className="text-xs font-black text-slate-900 truncate">
+                                {conv.doctorName}
                               </span>
-                              <span className="text-[10px] text-slate-400 shrink-0 ml-1">{msg.date}</span>
+                              <span className="text-[10px] text-slate-400 shrink-0 font-medium ml-1">
+                                {conv.lastMessageTime}
+                              </span>
                             </div>
-                            <div className={`text-sm mt-0.5 truncate ${!msg.isRead ? 'font-bold text-slate-800' : 'text-slate-500'}`}>
-                              {msg.subject}
+                            <div className="text-[11px] text-blue-600 font-semibold mb-1">
+                              {conv.doctorSpecialty}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate flex items-center justify-between">
+                              <span className="truncate pr-2">{conv.lastMessageText || 'Pas de message'}</span>
+                              {conv.unreadCount > 0 && (
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                                  {conv.unreadCount}
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </button>
-                    ))
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
 
+              {/* Colonne droite : Fil de discussion et saisie */}
               <div className="w-full md:w-3/5 flex flex-col bg-white">
-                {selectedMessage ? (
-                  <>
-                    <div className="p-5 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-900">{selectedMessage.subject}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {selectedMessage.sender} · {selectedMessage.date}
-                      </p>
-                    </div>
-                    <div className="flex-1 p-5 overflow-y-auto">
-                      <div className="bg-blue-50 text-blue-900 p-4 rounded-2xl text-sm inline-block max-w-[85%]">
-                        {selectedMessage.body}
-                        <div className="text-[10px] text-blue-400 mt-2 text-right">{selectedMessage.date}</div>
-                      </div>
-                    </div>
-                    <div className="p-4 border-t border-slate-100 bg-slate-50">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Écrire une réponse sécurisée..."
-                          value={replyText}
-                          onChange={e => setReplyText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && replyText.trim()) setReplyText('');
-                          }}
-                          className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
-                        />
-                        <button
-                          onClick={() => setReplyText('')}
-                          className="bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-700 transition"
-                        >
-                          <Send className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </>
+                {activeConversationId ? (
+                  (() => {
+                    const activeConv = conversations.find(c => c.id === activeConversationId);
+                    const currentDoctorName = activeConv?.doctorName || 'Dr. Marie Laurent';
+                    const currentSpecialty = activeConv?.doctorSpecialty || 'Médecin Généraliste';
+
+                    return (
+                      <>
+                        {/* En-tête de la discussion */}
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                          <div className="flex items-center space-x-3">
+                            <div className="relative">
+                              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                                {currentDoctorName.replace('Dr.', '').trim().slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-slate-900 text-sm leading-tight">{currentDoctorName}</h3>
+                              <p className="text-[11px] text-blue-600 font-medium">{currentSpecialty} &bull; <span className="text-emerald-600 font-semibold">En direct</span></p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">
+                              Chiffré de bout en bout
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Zone des messages défilants */}
+                        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30">
+                          {chatMessages.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                              <MessageSquare className="w-10 h-10 text-slate-200 mb-2" />
+                              <p className="text-xs font-semibold text-slate-600">Début de la conversation avec {currentDoctorName}</p>
+                              <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                                Posez vos questions de suivi médical, partagez vos constantes ou demandez conseil en toute confidentialité.
+                              </p>
+                            </div>
+                          ) : (
+                            chatMessages.map(msg => {
+                              const isSelf = msg.senderRole === 'patient';
+
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
+                                >
+                                  <div className="text-[10px] text-slate-400 mb-1 px-1">
+                                    {msg.senderName} &bull; {msg.time}
+                                  </div>
+                                  <div
+                                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                                      isSelf
+                                        ? 'bg-blue-600 text-white rounded-tr-none'
+                                        : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'
+                                    }`}
+                                  >
+                                    <p>{msg.text}</p>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Suggestions de messages rapides */}
+                        <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => setReplyText("La fièvre a baissé ce matin.")}
+                            className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                          >
+                            🌡️ La fièvre a baissé
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReplyText("J'ai bien pris les médicaments prescrits.")}
+                            className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                          >
+                            💊 Traitement bien pris
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReplyText("Puis-je avoir un renouvellement d'ordonnance ?")}
+                            className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                          >
+                            📋 Renouvellement
+                          </button>
+                        </div>
+
+                        {/* Barre de saisie de message */}
+                        <form onSubmit={handleSendPatientMessage} className="p-3 border-t border-slate-200 bg-white">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder={`Écrire un message au ${currentDoctorName}...`}
+                              value={replyText}
+                              onChange={e => setReplyText(e.target.value)}
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!replyText.trim()}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-blue-600/20 transition shrink-0"
+                            >
+                              <span>Envoyer</span>
+                              <Send className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    );
+                  })()
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
                     <MessageSquare className="w-12 h-12 text-slate-200 mb-3" />
-                    <p className="text-sm font-medium">Sélectionnez une conversation pour afficher les messages</p>
+                    <p className="text-sm font-medium">Sélectionnez une discussion pour afficher les messages</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal Nouveau Message */}
+          {isNewChatModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-brand font-black text-lg text-slate-900">Nouvelle discussion médicale</h3>
+                  <button onClick={() => setIsNewChatModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleStartNewConversation} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 uppercase block mb-1.5">Choisir le Praticien</label>
+                    <select
+                      value={newChatDoctorName}
+                      onChange={(e) => setNewChatDoctorName(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-blue-500"
+                    >
+                      {doctors.map(d => (
+                        <option key={d.id} value={d.name}>
+                          {d.name} &bull; {d.specialty}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 uppercase block mb-1.5">Votre Message</label>
+                    <textarea
+                      rows={4}
+                      value={newChatInitialText}
+                      onChange={(e) => setNewChatInitialText(e.target.value)}
+                      placeholder="Expliquez la raison de votre message ou votre question médicale..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewChatModalOpen(false)}
+                      className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!newChatInitialText.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/20 transition flex items-center space-x-1.5"
+                    >
+                      <span>Envoyer le message</span>
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

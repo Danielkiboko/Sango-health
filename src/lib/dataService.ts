@@ -8,12 +8,14 @@ export const dataService = {
   // 1. DOCTORS
   async getDoctors(): Promise<Doctor[]> {
     if (!isSupabaseConfigured || !supabase) {
-      return INITIAL_DOCTORS;
+      return this.checkAndDeactivateExpiredDoctors(INITIAL_DOCTORS);
     }
     try {
       const { data, error } = await supabase.from('doctors').select('*').order('id');
-      if (error || !data || data.length === 0) return INITIAL_DOCTORS;
-      return data.map((d: any) => ({
+      if (error || !data || data.length === 0) {
+        return this.checkAndDeactivateExpiredDoctors(INITIAL_DOCTORS);
+      }
+      const mapped = data.map((d: any) => ({
         id: d.id,
         name: d.name,
         specialty: d.specialty,
@@ -28,10 +30,19 @@ export const dataService = {
         slots: d.slots || ["09:00", "10:30", "14:00", "15:30"],
         schedule: d.schedule || [],
         commune: d.commune || 'Gombe',
-        coordinates: d.coordinates || undefined
+        coordinates: d.coordinates || undefined,
+        status: d.status || 'Actif',
+        subscriptionPlan: d.subscription_plan || 'Pro Cabinet',
+        subscriptionExpiresAt: d.subscription_expires_at || '2026-11-30',
+        subscriptionStatus: d.subscription_status || 'Actif',
+        monthlyFeeUSD: d.monthly_fee_usd || 59,
+        clinicName: d.clinic_name || '',
+        phone: d.phone || '',
+        email: d.email || ''
       }));
+      return this.checkAndDeactivateExpiredDoctors(mapped);
     } catch {
-      return INITIAL_DOCTORS;
+      return this.checkAndDeactivateExpiredDoctors(INITIAL_DOCTORS);
     }
   },
 
@@ -52,7 +63,15 @@ export const dataService = {
         consultation_type: doctor.consultationType || 'Cabinet & Vidéo',
         rating: doctor.rating || 5.0,
         reviews_count: doctor.reviewsCount || 0,
-        next_slot: doctor.nextSlot || 'Disponible'
+        next_slot: doctor.nextSlot || 'Disponible',
+        status: doctor.status || 'Actif',
+        subscription_plan: doctor.subscriptionPlan || 'Pro Cabinet',
+        subscription_expires_at: doctor.subscriptionExpiresAt || '2026-11-30',
+        subscription_status: doctor.subscriptionStatus || 'Actif',
+        monthly_fee_usd: doctor.monthlyFeeUSD || 59,
+        clinic_name: doctor.clinicName || '',
+        phone: doctor.phone || '',
+        email: doctor.email || ''
       }]);
     } catch (e) {
       console.warn("Could not insert doctor to Supabase:", e);
@@ -213,18 +232,59 @@ export const dataService = {
     }
   },
 
-  async updateDoctorStatus(doctorId: number, status: string): Promise<boolean> {
-    if (!isSupabaseConfigured || !supabase) return false;
+  async updateDoctorStatus(doctorId: number, status: 'Actif' | 'Suspendu' | 'Expiré'): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return true;
     try {
-      if (status === 'Suspendu') {
-        const { error } = await supabase.from('doctors').delete().eq('id', doctorId);
-        return !error;
-      }
-      return true;
+      const { error } = await supabase.from('doctors').update({ status }).eq('id', doctorId);
+      return !error;
     } catch (e) {
       console.warn("Could not update doctor in Supabase:", e);
       return false;
     }
+  },
+
+  async updateDoctorSubscription(doctorId: number, data: {
+    plan?: 'Starter' | 'Pro Cabinet' | 'Clinique Pro';
+    subscriptionExpiresAt?: string;
+    subscriptionStatus?: 'Actif' | 'Expiré' | 'Suspendu';
+    status?: 'Actif' | 'Suspendu' | 'Expiré';
+    monthlyFeeUSD?: number;
+  }): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return true;
+    try {
+      const { error } = await supabase.from('doctors').update({
+        subscription_plan: data.plan,
+        subscription_expires_at: data.subscriptionExpiresAt,
+        subscription_status: data.subscriptionStatus,
+        status: data.status,
+        monthly_fee_usd: data.monthlyFeeUSD
+      }).eq('id', doctorId);
+      return !error;
+    } catch (e) {
+      console.warn("Could not update doctor subscription in Supabase:", e);
+      return false;
+    }
+  },
+
+  checkAndDeactivateExpiredDoctors(doctors: Doctor[]): Doctor[] {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return doctors.map(doc => {
+      if (doc.subscriptionExpiresAt) {
+        const expDate = new Date(doc.subscriptionExpiresAt);
+        expDate.setHours(23, 59, 59, 999);
+        // Si l'échéance de l'abonnement est dépassée, le médecin est automatiquement désactivé
+        if (expDate < today) {
+          return {
+            ...doc,
+            status: 'Suspendu',
+            subscriptionStatus: 'Expiré'
+          };
+        }
+      }
+      return doc;
+    });
   },
 
   // 4. SAAS ACCOUNTS (B2B Cabinets & Hôpitaux)

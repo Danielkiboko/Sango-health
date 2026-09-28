@@ -353,6 +353,31 @@ export default function VideoConsultationRoomModal({
   const [isPrescriptionSigned, setIsPrescriptionSigned] = useState(false);
   const [signedPrescription, setSignedPrescription] = useState<Prescription | null>(null);
 
+  // Synchronisation temps réel du chat de téléconsultation entre les 2 fenêtres
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    const channelName = `sango_teleconsult_chat_${appointment.id}`;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel(channelName);
+        bc.onmessage = (event) => {
+          if (event.data && event.data.id) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === event.data.id)) return prev;
+              return [...prev, event.data];
+            });
+          }
+        };
+      } catch (e) {
+        console.warn('[ConsultationChat] Erreur BroadcastChannel:', e);
+      }
+    }
+
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [appointment.id]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -366,6 +391,15 @@ export default function VideoConsultationRoomModal({
 
     setMessages(prev => [...prev, msg]);
     setNewMessage('');
+
+    // Diffuser en direct à l'autre participant (médecin ou patient)
+    try {
+      const bc = new BroadcastChannel(`sango_teleconsult_chat_${appointment.id}`);
+      bc.postMessage(msg);
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('[ConsultationChat] Échec envoi:', e);
+    }
   };
 
   const handleAddMedication = () => {
@@ -418,6 +452,14 @@ export default function VideoConsultationRoomModal({
       attachment: prescription
     };
     setMessages(prev => [...prev, prescriptionMsg]);
+
+    try {
+      const bc = new BroadcastChannel(`sango_teleconsult_chat_${appointment.id}`);
+      bc.postMessage(prescriptionMsg);
+      setTimeout(() => bc.close(), 100);
+    } catch (e) {
+      console.warn('[ConsultationChat] Échec envoi ordonnance:', e);
+    }
 
     if (onSavePrescription) {
       onSavePrescription(appointment.id, prescription);

@@ -248,14 +248,40 @@ export default function SangoHealthApp() {
     showNotification(`Nouveau cabinet activé : ${newDoctor.name}`, 'success');
   };
 
-  const handleUpdateDoctorStatus = async (id: number, status: string) => {
-    if (status === 'Suspendu') {
-      setDoctors(prev => prev.filter(d => d.id !== id));
-      showNotification('Compte médecin suspendu sur le répertoire public.', 'info');
+  const handleUpdateDoctorStatus = async (id: number, status: 'Actif' | 'Suspendu' | 'Expiré') => {
+    setDoctors(prev => prev.map(d => {
+      if (d.id === id) {
+        return {
+          ...d,
+          status,
+          subscriptionStatus: status === 'Suspendu' ? 'Suspendu' : d.subscriptionStatus
+        };
+      }
+      return d;
+    }));
+    if (status === 'Suspendu' || status === 'Expiré') {
+      showNotification('Compte médecin désactivé du répertoire public.', 'info');
     } else {
-      showNotification('Compte médecin réactivé avec succès.', 'success');
+      showNotification('Compte médecin réactivé avec succès sur SangO Health.', 'success');
     }
     await dataService.updateDoctorStatus(id, status);
+  };
+
+  const handleUpdateDoctorSubscription = async (doctorId: number, updates: {
+    plan?: 'Starter' | 'Pro Cabinet' | 'Clinique Pro';
+    subscriptionExpiresAt?: string;
+    subscriptionStatus?: 'Actif' | 'Expiré' | 'Suspendu';
+    status?: 'Actif' | 'Suspendu' | 'Expiré';
+    monthlyFeeUSD?: number;
+  }) => {
+    setDoctors(prev => prev.map(d => {
+      if (d.id === doctorId) {
+        return { ...d, ...updates };
+      }
+      return d;
+    }));
+    await dataService.updateDoctorSubscription(doctorId, updates);
+    showNotification("Abonnement praticien et statut mis à jour avec succès !", 'success');
   };
 
   const handleOpenAuth = (portal?: 'patient' | 'doctor' | 'admin') => {
@@ -432,6 +458,7 @@ export default function SangoHealthApp() {
               appointments={appointments}
               onAddDoctor={handleAddDoctorFromSaaS}
               onUpdateDoctorStatus={handleUpdateDoctorStatus}
+              onUpdateDoctorSubscription={handleUpdateDoctorSubscription}
               onReturnHome={() => setCurrentView('home')}
               currentUser={currentUser}
             />

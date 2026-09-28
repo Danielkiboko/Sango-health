@@ -31,6 +31,17 @@ export interface Doctor {
   schedule?: DoctorScheduleDay[];
   commune?: string;
   coordinates?: { lat: number; lng: number };
+  // Gestion des abonnements SaaS
+  status?: 'Actif' | 'Suspendu' | 'Expiré';
+  subscriptionPlan?: 'Starter' | 'Pro Cabinet' | 'Clinique Pro';
+  subscriptionExpiresAt?: string; // YYYY-MM-DD
+  subscriptionStatus?: 'Actif' | 'Expiré' | 'Suspendu';
+  monthlyFeeUSD?: number;
+  paymentMethod?: 'M-Pesa' | 'Orange Money' | 'Airtel Money' | 'Carte Visa/Mastercard';
+  lastPaymentDate?: string;
+  clinicName?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface Prescription {
@@ -83,6 +94,8 @@ export interface SaaSDoctorAccount {
   lastPaymentDate?: string;
   paymentMethod?: 'M-Pesa' | 'Orange Money' | 'Airtel Money' | 'Carte Visa/Mastercard';
   paymentStatus?: 'Payé' | 'En attente' | 'Échu';
+  subscriptionExpiresAt?: string; // YYYY-MM-DD
+  subscriptionStatus?: 'Actif' | 'Expiré' | 'Suspendu';
 }
 
 export interface SaaSSubscriptionInvoice {

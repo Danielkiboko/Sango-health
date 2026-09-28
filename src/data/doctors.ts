@@ -15,7 +15,18 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet & Vidéo",
     bio: "Médecin généraliste diplômée de l'Université de Kinshasa, spécialisée en médecine préventive et familiale.",
-    slots: ["10:00", "11:30", "14:30", "16:00", "17:15"]
+    slots: ["10:00", "11:30", "14:30", "16:00", "17:15"],
+    // Abonnement SaaS lié depuis l'Admin
+    status: "Actif",
+    subscriptionPlan: "Pro Cabinet",
+    subscriptionExpiresAt: "2026-11-30",
+    subscriptionStatus: "Actif",
+    monthlyFeeUSD: 59,
+    clinicName: "Centre Médical Gombe",
+    phone: "+243 81 234 5678",
+    email: "marie.laurent@sango-health.com",
+    lastPaymentDate: "2026-09-01",
+    paymentMethod: "M-Pesa"
   },
   {
     id: 2,
@@ -31,7 +42,18 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet uniquement",
     bio: "Cardiologue interventionnel, ancien chef de clinique. Prise en charge des pathologies cardiovasculaires.",
-    slots: ["09:00", "09:45", "11:00", "15:00"]
+    slots: ["09:00", "09:45", "11:00", "15:00"],
+    // Abonnement SaaS lié
+    status: "Actif",
+    subscriptionPlan: "Starter",
+    subscriptionExpiresAt: "2026-10-25",
+    subscriptionStatus: "Actif",
+    monthlyFeeUSD: 29,
+    clinicName: "Cabinet Cardio 30 Juin",
+    phone: "+243 89 765 4321",
+    email: "jeanpaul.mukendi@sango-health.com",
+    lastPaymentDate: "2026-09-25",
+    paymentMethod: "Orange Money"
   },
   {
     id: 3,
@@ -47,7 +69,18 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet & Vidéo",
     bio: "Pédiatre passionnée par le développement de l'enfant et la néonatalogie. Accueil chaleureux des nourrissons.",
-    slots: ["13:00", "14:00", "16:00", "16:45"]
+    slots: ["13:00", "14:00", "16:00", "16:45"],
+    // Abonnement SaaS lié
+    status: "Actif",
+    subscriptionPlan: "Clinique Pro",
+    subscriptionExpiresAt: "2026-12-15",
+    subscriptionStatus: "Actif",
+    monthlyFeeUSD: 149,
+    clinicName: "Polyclinique Pédiatrique de la Gombe",
+    phone: "+243 82 345 6789",
+    email: "aminata.diallo@sango-health.com",
+    lastPaymentDate: "2026-09-15",
+    paymentMethod: "Airtel Money"
   },
   {
     id: 4,
@@ -63,7 +96,18 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet uniquement",
     bio: "Chirurgien-dentiste spécialisé en esthétique dentaire et implantologie.",
-    slots: ["08:30", "10:15", "14:00", "15:30"]
+    slots: ["08:30", "10:15", "14:00", "15:30"],
+    // Échéance dépassée : Automatiquement désactivé
+    status: "Suspendu",
+    subscriptionPlan: "Starter",
+    subscriptionExpiresAt: "2026-09-15",
+    subscriptionStatus: "Expiré",
+    monthlyFeeUSD: 29,
+    clinicName: "Cabinet Dentaire de Lingwala",
+    phone: "+243 85 432 1098",
+    email: "marc.tshilombo@sango-health.com",
+    lastPaymentDate: "2026-08-15",
+    paymentMethod: "M-Pesa"
   },
   {
     id: 5,
@@ -79,7 +123,18 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet & Vidéo",
     bio: "Gynécologue-obstétricienne spécialisée dans le suivi de grossesse et l'échographie obstétricale.",
-    slots: ["09:30", "11:00", "14:00", "15:30"]
+    slots: ["09:30", "11:00", "14:00", "15:30"],
+    // Abonnement SaaS lié
+    status: "Actif",
+    subscriptionPlan: "Pro Cabinet",
+    subscriptionExpiresAt: "2026-11-10",
+    subscriptionStatus: "Actif",
+    monthlyFeeUSD: 59,
+    clinicName: "Centre Mère-Enfant Macampagne",
+    phone: "+243 99 876 5432",
+    email: "nathalie.kalala@sango-health.com",
+    lastPaymentDate: "2026-09-10",
+    paymentMethod: "Orange Money"
   },
   {
     id: 6,
@@ -95,6 +150,17 @@ export const INITIAL_DOCTORS: Doctor[] = [
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300",
     consultationType: "Cabinet uniquement",
     bio: "Ophtalmologue spécialiste des troubles de la réfraction, du dépistage du glaucome et de la rétine.",
-    slots: ["10:00", "11:30", "15:00", "16:30"]
+    slots: ["10:00", "11:30", "15:00", "16:30"],
+    // Échéance dépassée : Automatiquement désactivé
+    status: "Suspendu",
+    subscriptionPlan: "Starter",
+    subscriptionExpiresAt: "2026-09-20",
+    subscriptionStatus: "Expiré",
+    monthlyFeeUSD: 29,
+    clinicName: "Centre Vision Limete",
+    phone: "+243 81 999 8877",
+    email: "serge.bakambu@sango-health.com",
+    lastPaymentDate: "2026-08-20",
+    paymentMethod: "Airtel Money"
   }
 ];

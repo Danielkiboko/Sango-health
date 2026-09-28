@@ -31,6 +31,14 @@ export default function SearchView({
   const [displayMode, setDisplayMode] = useState<'list' | 'map'>('list');
 
   const filteredDoctors = doctors.filter(doc => {
+    // Règle stricte : Les praticiens dont l'échéance d'abonnement est dépassée ou suspendus sont automatiquement désactivés du répertoire public
+    if (doc.status === 'Suspendu' || doc.subscriptionStatus === 'Expiré') return false;
+    if (doc.subscriptionExpiresAt) {
+      const expDate = new Date(doc.subscriptionExpiresAt);
+      expDate.setHours(23, 59, 59, 999);
+      if (expDate < new Date()) return false;
+    }
+
     const matchesSpecialty = filterSpecialty === '' || doc.specialty.toLowerCase().includes(filterSpecialty.toLowerCase());
     const matchesQuery = filterQuery === '' || 
                          doc.name.toLowerCase().includes(filterQuery.toLowerCase()) || 

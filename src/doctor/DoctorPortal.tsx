@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Calendar as CalendarIcon, 
   User, 
@@ -29,8 +29,10 @@ import {
   X,
   Users,
   Building,
-  Edit3
+  Edit3,
+  MessageSquare
 } from 'lucide-react';
+import { messagingService, MedicalMessage, ConversationSummary } from '../lib/messagingService';
 import { Appointment, Doctor, Prescription, DoctorScheduleDay, SaaSSubscriptionInvoice, UserProfile } from '../types';
 import VideoConsultationRoomModal from '../components/VideoConsultationRoomModal';
 import MobileMoneyBillingModal from './MobileMoneyBillingModal';
@@ -109,9 +111,9 @@ export default function DoctorPortal({
     );
   }, [appointments, currentDoctor.name]);
 
-  // Onglet actif parmi les 8 onglets métier
+  // Onglet actif parmi les 9 onglets métier
   const [activeTab, setActiveTab] = useState<
-    'agenda' | 'patients' | 'prescriptions' | 'teleconsultation' | 'schedule' | 'earnings' | 'billing' | 'profile'
+    'agenda' | 'patients' | 'prescriptions' | 'teleconsultation' | 'messages' | 'schedule' | 'earnings' | 'billing' | 'profile'
   >('agenda');
 
   const [activeCallApp, setActiveCallApp] = useState<Appointment | null>(null);
@@ -124,6 +126,70 @@ export default function DoctorPortal({
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 4000);
   };
+
+  // Messagerie Médicale Temps Réel (Médecin <-> Patients)
+  const doctorName = currentDoctor.name;
+  const [doctorConversations, setDoctorConversations] = useState<ConversationSummary[]>(() => 
+    messagingService.getConversationsForUser('doctor', doctorName)
+  );
+  const [activeDoctorConvId, setActiveDoctorConvId] = useState<string>(() => {
+    const list = messagingService.getConversationsForUser('doctor', doctorName);
+    return list[0]?.id || 'conv_kiboko_daniel_dr_marie_laurent';
+  });
+  const [doctorChatMessages, setDoctorChatMessages] = useState<MedicalMessage[]>(() =>
+    messagingService.getMessagesByConversation(activeDoctorConvId)
+  );
+  const [doctorReplyText, setDoctorReplyText] = useState('');
+  const doctorMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Synchronisation temps réel des messages reçus des patients
+  useEffect(() => {
+    const unsubscribe = messagingService.subscribe((msg) => {
+      setDoctorConversations(messagingService.getConversationsForUser('doctor', doctorName));
+      if (msg.conversationId === activeDoctorConvId) {
+        setDoctorChatMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [activeDoctorConvId, doctorName]);
+
+  useEffect(() => {
+    setDoctorChatMessages(messagingService.getMessagesByConversation(activeDoctorConvId));
+    messagingService.markConversationAsRead(activeDoctorConvId, 'doctor');
+    setDoctorConversations(messagingService.getConversationsForUser('doctor', doctorName));
+  }, [activeDoctorConvId, doctorName]);
+
+  useEffect(() => {
+    doctorMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [doctorChatMessages]);
+
+  const handleSendDoctorMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!doctorReplyText.trim()) return;
+
+    const currentConv = doctorConversations.find(c => c.id === activeDoctorConvId);
+    const patientRecipient = currentConv?.patientName || 'Kiboko Daniel';
+
+    const sent = messagingService.sendMessage({
+      senderRole: 'doctor',
+      senderName: doctorName,
+      recipientName: patientRecipient,
+      text: doctorReplyText.trim(),
+      conversationId: activeDoctorConvId
+    });
+
+    setDoctorChatMessages(prev => {
+      if (prev.some(m => m.id === sent.id)) return prev;
+      return [...prev, sent];
+    });
+    setDoctorConversations(messagingService.getConversationsForUser('doctor', doctorName));
+    setDoctorReplyText('');
+  };
+
+  const doctorUnreadCount = doctorConversations.reduce((acc, c) => acc + c.unreadCount, 0);
 
   // Schedule state
   const [schedule, setSchedule] = useState<DoctorScheduleDay[]>(
@@ -351,8 +417,13 @@ export default function DoctorPortal({
               <span className="bg-blue-500/20 text-blue-300 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider border border-blue-500/30">
                 Espace Praticien Santé
               </span>
-              <span className="bg-emerald-500/20 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                Plan Pro Cabinet ($59/m)
+              <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                currentDoctor.subscriptionStatus === 'Expiré' || currentDoctor.status === 'Suspendu' || (currentDoctor.subscriptionExpiresAt && new Date(currentDoctor.subscriptionExpiresAt) < new Date())
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+              }`}>
+                Plan {currentDoctor.subscriptionPlan || 'Pro Cabinet'} (${currentDoctor.monthlyFeeUSD || 59}/m)
+                {currentDoctor.subscriptionExpiresAt ? ` · Échéance : ${currentDoctor.subscriptionExpiresAt}` : ''}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white mt-1.5 font-brand">{currentDoctor.name}</h1>
@@ -361,7 +432,7 @@ export default function DoctorPortal({
               <span>&bull;</span>
               <span className="flex items-center space-x-1">
                 <MapPin className="w-3 h-3 text-blue-400" />
-                <span>{currentDoctor.address}</span>
+                <span>{currentDoctor.clinicName || currentDoctor.address}</span>
               </span>
             </p>
           </div>
@@ -395,6 +466,27 @@ export default function DoctorPortal({
           </button>
         </div>
       </div>
+
+      {/* ALERTE ÉCHÉANCE ABONNEMENT SI EXPIRÉ / SUSPENDU */}
+      {(currentDoctor.status === 'Suspendu' || currentDoctor.subscriptionStatus === 'Expiré' || (currentDoctor.subscriptionExpiresAt && new Date(currentDoctor.subscriptionExpiresAt) < new Date())) && (
+        <div className="mb-8 p-5 bg-rose-50 border-2 border-rose-200 rounded-3xl flex items-start space-x-4 shadow-sm animate-in fade-in">
+          <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-rose-900">
+              Abonnement SangO Health Arrivé à Échéance — Praticien Désactivé de l'Annuaire Public
+            </h3>
+            <p className="text-xs text-rose-700 mt-1 leading-relaxed">
+              Votre abonnement <b>{currentDoctor.subscriptionPlan || 'Pro Cabinet'}</b> est arrivé à échéance le <b>{currentDoctor.subscriptionExpiresAt || 'récemment'}</b>. 
+              Conformément à la politique de la plateforme, votre profil a été automatiquement désactivé de l'annuaire public et les patients ne peuvent plus réserver de créneaux en ligne.
+            </p>
+            <div className="mt-3 flex items-center space-x-3 text-xs text-rose-800 font-medium">
+              <span>📞 Contactez la direction SangO Health ou effectuez votre règlement Mobile Money (M-Pesa / Orange Money / Airtel Money) pour réactivation instantanée par l'administrateur.</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 8 ONGLETS DU MÉDECIN — NAVIGATION MÉTIER CLAIRE ET STRUCTURÉE */}
       <div className="flex overflow-x-auto border-b border-slate-200 mb-8 space-x-1 sm:space-x-3 text-xs sm:text-sm font-semibold pb-1 scrollbar-none">
@@ -444,6 +536,23 @@ export default function DoctorPortal({
         >
           <Video className="w-4 h-4 text-blue-600" />
           <span>Téléconsultation Vidéo</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('messages')}
+          className={`px-3 py-3 rounded-xl transition flex items-center space-x-2 shrink-0 ${
+            activeTab === 'messages' 
+              ? 'bg-blue-50 text-blue-700 font-bold border-b-2 border-blue-600' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-blue-600" />
+          <span>Messagerie Patients</span>
+          {doctorUnreadCount > 0 && (
+            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+              {doctorUnreadCount}
+            </span>
+          )}
         </button>
 
         <button 
@@ -991,6 +1100,214 @@ export default function DoctorPortal({
               <h3 className="font-bold text-slate-900 text-sm">Horodatage Automatique</h3>
               <p className="text-xs text-slate-500 mt-1">Durée de téléconsultation certifiée pour l'émission des reçus et factures d'honoraires.</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* NOUVEL ONGLET : MESSAGERIE PATIENTS TEMPS RÉEL */}
+      {/* ======================================================== */}
+      {activeTab === 'messages' && (
+        <div
+          className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row"
+          style={{ minHeight: 600, maxHeight: 680 }}
+        >
+          {/* Colonne gauche : Liste des patients */}
+          <div className="w-full md:w-2/5 border-r border-slate-200 bg-slate-50 flex flex-col">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">Messagerie Patients</h3>
+                <p className="text-[10px] text-slate-400">Canal sécurisé de télé-suivi médical</p>
+              </div>
+              {doctorUnreadCount > 0 && (
+                <span className="bg-blue-100 text-blue-800 font-bold text-xs px-2 py-0.5 rounded-full">
+                  {doctorUnreadCount} non lu(s)
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+              {doctorConversations.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  Aucun message patient pour l'instant. Les questions des patients apparaîtront ici.
+                </div>
+              ) : (
+                doctorConversations.map(conv => {
+                  const isSelected = activeDoctorConvId === conv.id;
+                  const initials = conv.patientName
+                    .split(' ')
+                    .map(n => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase();
+
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => {
+                        setActiveDoctorConvId(conv.id);
+                      }}
+                      className={`w-full text-left p-3.5 transition flex items-start space-x-3 ${
+                        isSelected 
+                          ? 'bg-blue-50/80 border-l-4 border-l-blue-600' 
+                          : 'hover:bg-slate-100/70 bg-white'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-700 text-white font-bold flex items-center justify-center shrink-0 shadow-sm text-xs">
+                        {initials || 'PT'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="text-xs font-black text-slate-900 truncate">
+                            {conv.patientName}
+                          </span>
+                          <span className="text-[10px] text-slate-400 shrink-0 font-medium ml-1">
+                            {conv.lastMessageTime}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium mb-1">
+                          Patient enregistré
+                        </div>
+                        <div className="text-xs text-slate-500 truncate flex items-center justify-between">
+                          <span className="truncate pr-2">{conv.lastMessageText || 'Pas de message'}</span>
+                          {conv.unreadCount > 0 && (
+                            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0">
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Colonne droite : Fil de discussion et réponse du médecin */}
+          <div className="w-full md:w-3/5 flex flex-col bg-white">
+            {activeDoctorConvId ? (
+              (() => {
+                const activeConv = doctorConversations.find(c => c.id === activeDoctorConvId);
+                const currentPatientName = activeConv?.patientName || 'Kiboko Daniel';
+
+                return (
+                  <>
+                    {/* En-tête de la discussion */}
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-2xl bg-slate-800 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                            {currentPatientName.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm leading-tight">Patient : {currentPatientName}</h3>
+                          <p className="text-[11px] text-slate-500 font-medium">Dossier médical actif &bull; <span className="text-emerald-600 font-semibold">En direct</span></p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">
+                          Canal Médical Certifié
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Zone des messages défilants */}
+                    <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30">
+                      {doctorChatMessages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                          <MessageSquare className="w-10 h-10 text-slate-200 mb-2" />
+                          <p className="text-xs font-semibold text-slate-600">Début de la conversation avec {currentPatientName}</p>
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                            Répondez aux questions médicales du patient ou donnez des instructions de suivi.
+                          </p>
+                        </div>
+                      ) : (
+                        doctorChatMessages.map(msg => {
+                          const isSelf = msg.senderRole === 'doctor';
+
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
+                            >
+                              <div className="text-[10px] text-slate-400 mb-1 px-1">
+                                {msg.senderName} &bull; {msg.time}
+                              </div>
+                              <div
+                                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                                  isSelf
+                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-200'
+                                }`}
+                              >
+                                <p>{msg.text}</p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={doctorMessagesEndRef} />
+                    </div>
+
+                    {/* Suggestions de réponses médicales rapides pour le docteur */}
+                    <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setDoctorReplyText("Bien reçu. Poursuivez le traitement comme indiqué sur votre ordonnance.")}
+                        className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                      >
+                        ✅ Bien reçu, poursuivez le traitement
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDoctorReplyText("Très bien pour la température. Continuez à bien vous hydrater et reposez-vous.")}
+                        className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                      >
+                        💧 Hydratation & repos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDoctorReplyText("Si les symptômes persistent au-delà de 48h, nous planifierons une téléconsultation de contrôle.")}
+                        className="bg-white border border-slate-200 hover:border-blue-400 text-slate-600 px-2.5 py-1 rounded-full whitespace-nowrap transition"
+                      >
+                        📅 Consultation de contrôle si besoin
+                      </button>
+                    </div>
+
+                    {/* Barre de saisie de message du docteur */}
+                    <form onSubmit={handleSendDoctorMessage} className="p-3 border-t border-slate-200 bg-white">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder={`Écrire une réponse médicale à ${currentPatientName}...`}
+                          value={doctorReplyText}
+                          onChange={e => setDoctorReplyText(e.target.value)}
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!doctorReplyText.trim()}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-blue-600/20 transition shrink-0"
+                        >
+                          <span>Répondre</span>
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                );
+              })()
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <MessageSquare className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-sm font-medium">Sélectionnez un patient pour afficher les messages</p>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -196,7 +196,18 @@ export default function HomeView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {doctors.slice(0, 6).map((doc) => (
+            {doctors
+              .filter(doc => {
+                if (doc.status === 'Suspendu' || doc.subscriptionStatus === 'Expiré') return false;
+                if (doc.subscriptionExpiresAt) {
+                  const expDate = new Date(doc.subscriptionExpiresAt);
+                  expDate.setHours(23, 59, 59, 999);
+                  if (expDate < new Date()) return false;
+                }
+                return true;
+              })
+              .slice(0, 6)
+              .map((doc) => (
               <div key={doc.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition flex flex-col">
                 <div className="relative h-48 bg-slate-200">
                   <img src={doc.image} alt={doc.name} className="w-full h-full object-cover" />
